@@ -1,0 +1,21 @@
+# =============================================================================
+# Language Configuration — VISTA Research Group
+# =============================================================================
+
+en:
+  languageCode: en-us
+  languageName: English
+  contentDir: content/en
+  title: VISTA Research Group
+  weight: 1
+  params:
+    description: "Visualization, Intelligence, Simulation & Tactical Analysis — 三维战场态势仿真与智能推演研究组"
+
+zh:
+  languageCode: zh-cn
+  languageName: 中文
+  contentDir: content/zh
+  title: 维势研究组
+  weight: 2
+  params:
+    description: "维势研究组 — 聚焦三维战场态势仿真、智能推演与作战辅助分析"

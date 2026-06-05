@@ -1,0 +1,103 @@
+# =============================================================================
+# Theme & Site Parameters — VISTA Research Group
+# =============================================================================
+
+# --- Color Theme (深蓝科技风格) -----------------------------------------------
+color: blue
+color_theme: ocean
+appearance:
+  theme_day: ocean
+  theme_night: ocean
+  font: native
+  font_size: L
+
+# --- Site Level Settings ----------------------------------------------------
+header:
+  navbar:
+    enable: true
+    align: "center"
+    show_logo: true
+    show_language: false
+    show_search: true
+    show_theme_chooser: false
+    highlight_active_link: true
+    logo:
+      text: "VISTA Research Group"
+
+footer:
+  block: |
+    **VISTA Research Group** — 维势研究组<br>
+    Visualization, Intelligence, Simulation & Tactical Analysis<br>
+    聚焦三维战场态势仿真、智能推演与作战辅助分析
+  copyright:
+    notice: "© {year} VISTA Research Group. All rights reserved."
+
+# --- Site SEO & Metadata ----------------------------------------------------
+title: "VISTA Research Group"
+math: false
+diagram: false
+privacy_pack: false
+edit_page:
+  repo_url: ""
+show_related:
+  post: true
+  project: true
+  publication: true
+
+# --- Homepage Sections (HugoBlox Block Builder) ------------------------------
+# The homepage is built from sections defined here.
+# Each section references a widget/block type and Markdown content.
+
+sections:
+  # 1. Hero
+  - block: hero
+    id: hero
+    content: ""
+    design:
+      background:
+        gradient_start: "#0a1628"
+        gradient_end: "#1a3a5c"
+      spacing:
+        padding: ["100px", "0", "100px", "0"]
+
+  # 2. Research Highlights
+  - block: collection
+    id: research-highlights
+    content: ""
+    design:
+      columns: "1"
+      view: card
+
+  # 3. Featured Projects
+  - block: collection
+    id: featured-projects
+    content: ""
+    design:
+      columns: "1"
+      view: showcase
+
+  # 4. Latest Posts
+  - block: collection
+    id: posts
+    content: ""
+    design:
+      columns: "1"
+      view: compact
+
+  # 5. Recent Publications
+  - block: collection
+    id: publications
+    content: ""
+    design:
+      columns: "1"
+      view: citation
+
+  # 6. Team Preview
+  - block: people
+    id: team
+    content: ""
+    design:
+      columns: "1"
+      show_interests: false
+      show_role: true
+      show_social: true

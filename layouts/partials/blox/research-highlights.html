@@ -1,0 +1,77 @@
+{{/* Research Highlights Block — 3 direction cards */}}
+{{ $block := .block }}
+{{ $page := .page }}
+
+<section class="py-16 md:py-20" style="background: #f8fafc;">
+  <div class="container mx-auto px-4 max-w-6xl">
+    <!-- Section Header -->
+    <div class="section-header">
+      <h2 class="section-header__title">{{ $block.content.title | default "Research Highlights" }}</h2>
+      <p class="section-header__subtitle">{{ $block.content.subtitle | default "研究方向" }}</p>
+      <div class="section-header__divider"></div>
+    </div>
+
+    <!-- Research Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
+      <!-- Direction 1: 3D Visualization -->
+      <div class="research-card">
+        <div class="research-card__icon">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+          </svg>
+        </div>
+        <h3 class="research-card__title">3D Battlefield Situation Visualization</h3>
+        <p class="research-card__subtitle">三维战场态势可视化</p>
+        <p class="research-card__description">面向多尺度作战场景的三维态势表达与交互分析。通过多源数据融合、分层渲染和交互探索，实现从战略全局到战术细节的无缝感知。</p>
+        <div class="research-card__keywords">
+          <span class="keyword-tag">3D Visualization</span>
+          <span class="keyword-tag">Situation Awareness</span>
+          <span class="keyword-tag">WebGL</span>
+        </div>
+        <a href="/research/" class="inline-block mt-4 text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors">
+          Learn More →
+        </a>
+      </div>
+
+      <!-- Direction 2: Simulation & Wargaming -->
+      <div class="research-card">
+        <div class="research-card__icon">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h3 class="research-card__title">Simulation &amp; Wargaming</h3>
+        <p class="research-card__subtitle">仿真建模与推演分析</p>
+        <p class="research-card__description">基于多智能体技术的仿真推演框架。组件化实体建模、可配置行为规则、灵活想定编辑，支撑多粒度推演分析。</p>
+        <div class="research-card__keywords">
+          <span class="keyword-tag">Multi-Agent</span>
+          <span class="keyword-tag">Simulation</span>
+          <span class="keyword-tag">Wargaming</span>
+        </div>
+        <a href="/research/" class="inline-block mt-4 text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors">
+          Learn More →
+        </a>
+      </div>
+
+      <!-- Direction 3: Decision Intelligence -->
+      <div class="research-card">
+        <div class="research-card__icon">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <h3 class="research-card__title">Decision Intelligence</h3>
+        <p class="research-card__subtitle">智能评估与辅助决策</p>
+        <p class="research-card__description">面向复杂战场环境的方案智能评估方法。多维度指标体系、多目标优化排序、对抗推演验证与人机协同分析的有机结合。</p>
+        <div class="research-card__keywords">
+          <span class="keyword-tag">Decision Intelligence</span>
+          <span class="keyword-tag">Optimization</span>
+          <span class="keyword-tag">Risk Assessment</span>
+        </div>
+        <a href="/research/" class="inline-block mt-4 text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors">
+          Learn More →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

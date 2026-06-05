@@ -1,0 +1,70 @@
+# =============================================================================
+# Hugo Configuration — VISTA Research Group
+# =============================================================================
+baseURL: "https://vista-research-group.github.io/"
+title: "VISTA Research Group"
+theme: ""
+enableGitInfo: false
+enableRobotsTXT: true
+paginate: 10
+timeout: "120s"
+
+# Build options
+build:
+  writeStats: true
+
+# Taxonomies
+taxonomies:
+  author: authors
+  category: categories
+  tag: tags
+  publication_type: publication_types
+
+# Permalinks
+permalinks:
+  post: "/post/:slug/"
+  project: "/project/:slug/"
+  publication: "/publication/:slug/"
+  authors: "/author/:slug/"
+
+# Module configuration — HugoBlox via Hugo Modules
+module:
+  hugoVersion:
+    extended: true
+    min: "0.120.0"
+  imports:
+    - path: github.com/HugoBlox/hugo-blox-builder/modules/blox-tailwind
+    - path: github.com/HugoBlox/hugo-blox-builder/modules/blox-plugin-netlify
+
+# Markup
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    style: "dracula"
+  tableOfContents:
+    endLevel: 3
+    startLevel: 2
+
+# Sitemap
+sitemap:
+  changefreq: weekly
+  priority: 0.5
+
+# Related content
+related:
+  threshold: 80
+  includeNewer: true
+  toLower: true
+  indices:
+    - name: tags
+      weight: 100
+    - name: categories
+      weight: 70
+
+# Minification
+minify:
+  tdewolff:
+    html:
+      keepWhitespace: false

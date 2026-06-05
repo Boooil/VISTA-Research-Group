@@ -1,0 +1,36 @@
+# =============================================================================
+# Navigation Menus — VISTA Research Group
+# =============================================================================
+
+main:
+  - name: Home
+    url: "/"
+    weight: 10
+
+  - name: Research
+    url: "/research/"
+    weight: 20
+
+  - name: Projects
+    url: "/project/"
+    weight: 30
+
+  - name: Publications
+    url: "/publication/"
+    weight: 40
+
+  - name: Posts
+    url: "/post/"
+    weight: 50
+
+  - name: Team
+    url: "/authors/"
+    weight: 60
+
+  - name: Resources
+    url: "/resources/"
+    weight: 70
+
+  - name: About
+    url: "/about/"
+    weight: 80

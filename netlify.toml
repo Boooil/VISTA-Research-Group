@@ -1,0 +1,33 @@
+# =============================================================================
+# Netlify Configuration — VISTA Research Group
+# =============================================================================
+[build]
+  command = "hugo --minify --gc"
+  publish = "public"
+
+[build.environment]
+  HUGO_VERSION = "0.140.0"
+  HUGO_ENV = "production"
+  HUGO_ENABLEGITINFO = "true"
+  GO_VERSION = "1.22"
+
+[context.production]
+  command = "hugo --minify --gc --enableGitInfo"
+
+[context.deploy-preview]
+  command = "hugo --minify --buildFuture --buildDrafts"
+
+[context.branch-deploy]
+  command = "hugo --minify --buildFuture --buildDrafts"
+
+[[redirects]]
+  from = "/admin/*"
+  to = "https://vista-research-group.netlify.app/admin/:splat"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

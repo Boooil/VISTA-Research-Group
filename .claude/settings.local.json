@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where.exe hugo *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c//**)",
+      "Bash(curl -L -o hugo_extended.zip \"https://github.com/gohugoio/hugo/releases/download/v0.140.0/hugo_extended_0.140.0_windows-amd64.zip\")",
+      "Bash(unzip -o hugo_extended.zip -d hugo_bin)",
+      "Bash(./hugo_bin/hugo version *)"
+    ]
+  }
+}

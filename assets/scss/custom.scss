@@ -1,0 +1,269 @@
+// =============================================================================
+// Custom SCSS — VISTA Research Group
+// 深蓝科技风格 (Deep Blue Tech Style)
+// =============================================================================
+
+// --- CSS Variables Override --------------------------------------------------
+:root {
+  // Primary palette — Deep Tech Blue
+  --color-primary-900: #0a1628;
+  --color-primary-800: #0f2040;
+  --color-primary-700: #162d5c;
+  --color-primary-600: #1a3a78;
+  --color-primary-500: #1e4d94;
+  --color-primary-400: #2563b0;
+  --color-primary-300: #3b82c4;
+  --color-primary-200: #60a5da;
+  --color-primary-100: #93c5e4;
+  --color-primary-50:  #dbeafe;
+
+  // Accent
+  --color-accent: #38bdf8;
+  --color-accent-dark: #0284c7;
+  --color-accent-light: #7dd3fc;
+
+  // Neutral
+  --color-neutral-900: #111827;
+  --color-neutral-800: #1f2937;
+  --color-neutral-700: #374151;
+  --color-neutral-600: #4b5563;
+  --color-neutral-500: #6b7280;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-50:  #f9fafb;
+}
+
+// --- Hero Section Styles ----------------------------------------------------
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0a1628 0%, #0f2040 30%, #162d5c 60%, #1a3a78 100%);
+
+  // Abstract grid overlay — simulates digital terrain / grid terrain
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    background-position: center center;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 70%);
+    pointer-events: none;
+  }
+
+  // Floating particles / data points
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1px 1px at 20% 30%, rgba(96, 165, 218, 0.6), transparent),
+      radial-gradient(1px 1px at 40% 70%, rgba(56, 189, 248, 0.5), transparent),
+      radial-gradient(2px 2px at 60% 20%, rgba(147, 197, 228, 0.5), transparent),
+      radial-gradient(1px 1px at 75% 55%, rgba(96, 165, 218, 0.4), transparent),
+      radial-gradient(2px 2px at 85% 40%, rgba(56, 189, 248, 0.5), transparent),
+      radial-gradient(1px 1px at 15% 60%, rgba(147, 197, 228, 0.4), transparent),
+      radial-gradient(1px 1px at 50% 80%, rgba(96, 165, 218, 0.3), transparent),
+      radial-gradient(2px 2px at 90% 10%, rgba(56, 189, 248, 0.4), transparent);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// --- Research Cards ----------------------------------------------------------
+.research-card {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  background: white;
+
+  &:hover {
+    border-color: var(--color-primary-300);
+    box-shadow: 0 8px 30px rgba(30, 77, 148, 0.12);
+    transform: translateY(-2px);
+  }
+
+  .research-card__icon {
+    font-size: 2rem;
+    color: var(--color-primary-500);
+    margin-bottom: 1rem;
+  }
+
+  .research-card__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary-800);
+    margin-bottom: 0.25rem;
+  }
+
+  .research-card__subtitle {
+    font-size: 0.9rem;
+    color: var(--color-neutral-500);
+    margin-bottom: 1rem;
+  }
+
+  .research-card__description {
+    font-size: 0.95rem;
+    color: var(--color-neutral-700);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .research-card__keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+
+    .keyword-tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      background: var(--color-primary-50);
+      color: var(--color-primary-600);
+      font-weight: 500;
+    }
+  }
+}
+
+// --- Section Headers ---------------------------------------------------------
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+
+  .section-header__title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary-800);
+    margin-bottom: 0.5rem;
+  }
+
+  .section-header__subtitle {
+    font-size: 1.1rem;
+    color: var(--color-neutral-500);
+    font-weight: 400;
+  }
+
+  .section-header__divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-primary-400), var(--color-accent));
+    margin: 1rem auto 0;
+    border-radius: 2px;
+  }
+}
+
+// --- Footer ------------------------------------------------------------------
+.site-footer {
+  background: var(--color-primary-900);
+  color: var(--color-neutral-300);
+  padding: 3rem 0 1.5rem;
+
+  a {
+    color: var(--color-accent-light);
+    transition: color 0.2s;
+
+    &:hover {
+      color: white;
+    }
+  }
+
+  .footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--color-neutral-500);
+  }
+}
+
+// --- Navbar tweaks -----------------------------------------------------------
+.navbar {
+  background: rgba(10, 22, 40, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+// --- Button styles -----------------------------------------------------------
+.btn-vista-primary {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-300));
+  color: white;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.3s;
+
+  &:hover {
+    background: linear-gradient(135deg, var(--color-primary-300), var(--color-accent));
+    box-shadow: 0 4px 15px rgba(30, 77, 148, 0.4);
+    color: white;
+  }
+}
+
+.btn-vista-outline {
+  background: transparent;
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.3s;
+
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(56, 189, 248, 0.1);
+  }
+}
+
+// --- Project cards -----------------------------------------------------------
+.project-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: white;
+  border: 1px solid var(--color-neutral-200);
+
+  &:hover {
+    box-shadow: 0 12px 40px rgba(10, 22, 40, 0.15);
+    transform: translateY(-4px);
+  }
+}
+
+// --- Publication citation style ----------------------------------------------
+.publication-citation {
+  padding: 1.5rem;
+  border-left: 3px solid var(--color-primary-300);
+  background: var(--color-neutral-50);
+  margin-bottom: 1rem;
+  border-radius: 0 8px 8px 0;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-left-color: var(--color-accent);
+  }
+}
+
+// --- Team member cards -------------------------------------------------------
+.team-card {
+  text-align: center;
+  padding: 2rem 1rem;
+
+  .team-card__avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--color-primary-200);
+    margin-bottom: 1rem;
+  }
+}
