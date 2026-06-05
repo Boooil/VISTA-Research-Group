@@ -3,6 +3,7 @@
 # =============================================================================
 baseURL: "https://vista-research-group.github.io/"
 title: "VISTA Research Group"
+relativeURLs: true
 enableGitInfo: false
 enableRobotsTXT: true
 pagination:
