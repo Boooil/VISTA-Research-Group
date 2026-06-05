@@ -31,7 +31,7 @@ permalinks:
 module:
   hugoVersion:
     extended: true
-    min: "0.120.0"
+    min: "0.142.0"
   imports:
     - path: github.com/HugoBlox/hugo-blox-builder/modules/blox-tailwind
 
