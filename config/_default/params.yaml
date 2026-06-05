@@ -25,10 +25,7 @@ header:
       text: "VISTA Research Group"
 
 footer:
-  block: |
-    **VISTA Research Group** — 维势研究组<br>
-    Visualization, Intelligence, Simulation & Tactical Analysis<br>
-    聚焦三维战场态势仿真、智能推演与作战辅助分析
+  block: "vista"
   copyright:
     notice: "© {year} VISTA Research Group. All rights reserved."
 

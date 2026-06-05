@@ -46,6 +46,9 @@ jobs:
           hugo-version: ${{ env.HUGO_VERSION }}
           extended: true
 
+      - name: Install Node.js Dependencies
+        run: npm install
+
       - name: Cache Hugo Modules
         uses: actions/cache@v4
         with:

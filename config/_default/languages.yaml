@@ -5,7 +5,6 @@
 en:
   languageCode: en-us
   languageName: English
-  contentDir: content/en
   title: VISTA Research Group
   weight: 1
   params:
@@ -14,7 +13,6 @@ en:
 zh:
   languageCode: zh-cn
   languageName: 中文
-  contentDir: content/zh
   title: 维势研究组
   weight: 2
   params:

@@ -1,53 +1,49 @@
 ---
-# =============================================================================
-# Homepage — VISTA Research Group
-# =============================================================================
 title: "VISTA Research Group"
 type: landing
 
-# Hero section data (used by hero-vista block)
-hero:
-  headline: "VISTA Research Group"
-  subheadline: "维势研究组"
-  tagline: "Visualization, Intelligence, Simulation & Tactical Analysis"
-  description: "聚焦三维战场态势仿真、智能推演与作战辅助分析"
-  slogan: "洞察全域态势，推演未来行动"
-  cta:
-    - label: "Explore Research"
-      url: "/research/"
-      icon: "rocket"
-    - label: "Latest Work"
-      url: "/project/"
-      icon: "flask"
-    - label: "Contact Us"
-      url: "/about/"
-      icon: "envelope"
-
-# Homepage Sections / Widgets
-# HugoBlox block builder: each section maps to a widget in layouts/partials/blox/
 sections:
-  # --- Hero (custom) ---
-  - block: hero-vista
+  # --- Hero ---
+  - block: hero
     id: hero
     content:
-      title: ""
-      text: ""
+      title: "VISTA Research Group"
+      text: |
+        维势研究组<br>
+        *Visualization, Intelligence, Simulation & Tactical Analysis*<br><br>
+        聚焦三维战场态势仿真、智能推演与作战辅助分析<br><br>
+        **"洞察全域态势，推演未来行动"**
+      primary_action:
+        text: "Explore Research"
+        url: "/research/"
+        icon: "rocket"
+      secondary_action:
+        text: "Latest Work"
+        url: "/project/"
     design:
-      background:
-        gradient_start: "#0a1628"
-        gradient_end: "#1a3a5c"
-      spacing:
-        padding: ["0", "0", "0", "0"]
+      no_padding: false
 
-  # --- Research Highlights (custom) ---
-  - block: research-highlights
+  # --- Research Highlights ---
+  - block: features
     id: research-highlights
     content:
       title: "Research Highlights"
       subtitle: "研究方向"
-      text: ""
+      items:
+        - title: "3D Battlefield Situation Visualization"
+          subtitle: "三维战场态势可视化"
+          description: "面向多尺度作战场景的三维态势表达与交互分析。通过多源数据融合、分层渲染和交互探索，实现从战略全局到战术细节的无缝感知。"
+          icon: "globe"
+        - title: "Simulation & Wargaming"
+          subtitle: "仿真建模与推演分析"
+          description: "基于多智能体技术的仿真推演框架。组件化实体建模、可配置行为规则、灵活想定编辑，支撑多粒度推演分析。"
+          icon: "desktop"
+        - title: "Decision Intelligence"
+          subtitle: "智能评估与辅助决策"
+          description: "面向复杂战场环境的方案智能评估方法。多维度指标体系、多目标优化排序、对抗推演验证与人机协同分析。"
+          icon: "chart-bar"
     design:
-      columns: "1"
+      columns: "3"
 
   # --- Featured Projects ---
   - block: collection
@@ -65,7 +61,7 @@ sections:
         text: "View All Projects →"
         url: "/project/"
     design:
-      view: showcase
+      view: card
       columns: "2"
 
   # --- Latest Posts ---
@@ -78,13 +74,12 @@ sections:
       filters:
         folders:
           - post
-        featured_only: false
       archive:
         enable: true
         text: "View All Posts →"
         url: "/post/"
     design:
-      view: compact
+      view: date-title-summary
       columns: "2"
 
   # --- Recent Publications ---
@@ -97,7 +92,6 @@ sections:
       filters:
         folders:
           - publication
-        featured_only: false
       archive:
         enable: true
         text: "View All Publications →"
@@ -107,7 +101,7 @@ sections:
       columns: "2"
 
   # --- Team Preview ---
-  - block: people
+  - block: team-showcase
     id: team
     content:
       title: "Meet the Team"
