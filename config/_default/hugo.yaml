@@ -1,9 +1,8 @@
 # =============================================================================
 # Hugo Configuration — VISTA Research Group
 # =============================================================================
-baseURL: "https://vista-research-group.github.io/"
+baseURL: "https://boooil.github.io/VISTA-Research-Group/"
 title: "VISTA Research Group"
-relativeURLs: true
 enableGitInfo: false
 enableRobotsTXT: true
 pagination:
