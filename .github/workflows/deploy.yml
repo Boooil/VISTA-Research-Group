@@ -50,14 +50,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/hugo_modules
             /tmp/hugo_cache
-          key: ${{ runner.os }}-hugo-${{ hashFiles('go.sum') }}
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-hugo-${{ hashFiles('go.mod') }}
           restore-keys: |
             ${{ runner.os }}-hugo-
 
-      - name: Install Hugo Modules
-        run: hugo mod get -u
+      - name: Download Hugo Modules
+        run: hugo mod get
 
       - name: Build
         run: hugo --minify --gc --enableGitInfo

@@ -6,7 +6,8 @@ title: "VISTA Research Group"
 theme: ""
 enableGitInfo: false
 enableRobotsTXT: true
-paginate: 10
+pagination:
+  pagerSize: 10
 timeout: "120s"
 
 # Build options
@@ -34,7 +35,6 @@ module:
     min: "0.120.0"
   imports:
     - path: github.com/HugoBlox/hugo-blox-builder/modules/blox-tailwind
-    - path: github.com/HugoBlox/hugo-blox-builder/modules/blox-plugin-netlify
 
 # Markup
 markup:
