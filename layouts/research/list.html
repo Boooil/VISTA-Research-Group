@@ -1,0 +1,117 @@
+{{ define "main" }}
+
+{{ $widths := slice
+  (dict "key" "compact"  "label" "紧凑" "style" "max-width: 65ch;"   "center" true  "desc" "65ch · 与标题对齐")
+  (dict "key" "standard" "label" "标准" "style" "max-width: 48rem;"  "center" true  "desc" "48rem · 适中宽度")
+  (dict "key" "wide"     "label" "宽栏" "style" "max-width: 56rem;"  "center" true  "desc" "56rem · 更宽")
+  (dict "key" "full"     "label" "铺满" "style" "max-width: none;"   "center" false "desc" "不限宽 · 全屏")
+}}
+
+{{/* Title / Subtitle / Summary — fixed width, unaffected by toggle */}}
+<div class="max-w-prose mx-auto px-6 md:px-0">
+  <div class="flex items-baseline gap-4 mb-2">
+    <h1 class="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white">{{ .Title }}</h1>
+    {{ with .Params.subtitle }}
+    <span class="text-lg text-gray-500 dark:text-gray-400">{{ . | markdownify }}</span>
+    {{ end }}
+  </div>
+
+  {{ with .Params.summary }}
+  <p class="text-gray-500 dark:text-gray-400 mb-0">{{ . | markdownify }}</p>
+  {{ end }}
+
+  {{/* Separator */}}
+  <hr class="border-0 border-t border-gray-300 dark:border-gray-600 mt-6 mb-8">
+</div>
+
+{{/* Width toggle + content area — dynamic width, matches Publication page layout */}}
+<div
+  x-data="{
+    widthMode: 'compact',
+    widthStyle: 'max-width: 65ch;',
+    center: true,
+    widthOptions: {{ $widths | jsonify }},
+    init() {
+      const saved = localStorage.getItem('research-width-mode');
+      const found = this.widthOptions.find(o => o.key === saved);
+      if (found) {
+        this.widthMode = found.key;
+        this.widthStyle = found.style;
+        this.center = found.center;
+      }
+    },
+    setWidth(mode) {
+      this.widthMode = mode;
+      const found = this.widthOptions.find(o => o.key === mode);
+      if (found) {
+        this.widthStyle = found.style;
+        this.center = found.center;
+      }
+      localStorage.setItem('research-width-mode', mode);
+    }
+  }"
+  class="mt-8">
+
+  {{/* Content — width class is dynamic */}}
+  <div :style="widthStyle" :class="(center ? 'mx-auto ' : '') + 'px-6 md:px-0'">
+
+    {{/* Width Toggle Bar — aligned to right edge of content */}}
+    <div class="flex items-center gap-2 justify-end mb-4">
+      <span class="text-xs text-gray-400 dark:text-gray-500 mr-1 hidden sm:inline">宽度</span>
+      <template x-for="opt in widthOptions" :key="opt.key">
+        <button
+          @click="setWidth(opt.key)"
+          :class="widthMode === opt.key
+            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 ring-1 ring-primary-300'
+            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+          :title="opt.desc"
+          class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+          x-text="opt.label"
+        ></button>
+      </template>
+    </div>
+
+    <div class="prose prose-slate lg:prose-xl dark:prose-invert max-w-none">
+      {{ .Content }}
+    </div>
+  </div>
+
+</div>
+
+{{ $view := .Params.view | default "card" }}
+{{ $block := . }}
+
+{{ $paginator := .Paginate .Pages.ByDate.Reverse }}
+{{ $config := dict
+  "columns" (.Params.columns | default 2)
+  "len" (len $paginator.Pages)
+  "fill_image" (.Params.fill_image | default true)
+  "show_date" (.Params.show_date | default true)
+  "show_read_time" (.Params.show_read_time | default true)
+  "show_read_more" (.Params.show_read_more | default true)
+}}
+
+{{/* Check if any pages have author_notes to enable Alpine.js */}}
+{{ range .Pages }}
+  {{ if isset .Params "author_notes" }}
+    {{ $.Store.Set "has_alpine" true }}
+    <script>console.log('Author notes found in list - Alpine.js enabled');</script>
+    {{ break }}
+  {{ end }}
+{{ end }}
+
+<div class="flex flex-col items-center">
+
+  {{ partial "functions/render_view" (dict "fragment" "start" "page" $block "item" . "view" $view "config" $config) }}
+
+  {{ range $index, $item := $paginator.Pages }}
+  {{ partial "functions/render_view" (dict "page" . "item" . "view" $view "index" $index "config" $config) }}
+  {{end}}
+
+  {{ partial "functions/render_view" (dict "fragment" "end" "page" $block "item" . "view" $view) }}
+
+  {{ partial "components/paginator" . }}
+
+</div>
+
+{{ end }}

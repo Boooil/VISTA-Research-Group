@@ -62,6 +62,11 @@ related:
     - name: categories
       weight: 70
 
+# Image processing quality
+imaging:
+  quality: 90
+  resampleFilter: "Lanczos"
+
 # Minification
 minify:
   tdewolff:

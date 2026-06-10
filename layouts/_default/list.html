@@ -1,0 +1,62 @@
+{{ define "main" }}
+
+<div class="max-w-prose mx-auto px-6 md:px-0">
+  {{/* Title row: title + subtitle on same line */}}
+  <div class="flex items-baseline gap-4 mb-2">
+    <h1 class="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white">{{ .Title }}</h1>
+    {{ with .Params.subtitle }}
+    <span class="text-lg text-gray-500 dark:text-gray-400">{{ . | markdownify }}</span>
+    {{ end }}
+  </div>
+
+  {{ with .Params.summary }}
+  <p class="text-gray-500 dark:text-gray-400 mb-0">{{ . | markdownify }}</p>
+  {{ end }}
+
+  {{/* Separator */}}
+  <hr class="border-0 border-t border-gray-300 dark:border-gray-600 mt-6 mb-8">
+
+  {{ with .Content }}
+  <div class="prose prose-slate lg:prose-xl dark:prose-invert">
+    {{ . }}
+  </div>
+  {{ end }}
+</div>
+
+{{ $view := .Params.view | default "card" }}
+{{ $block := . }}
+
+{{ $paginator := .Paginate .Pages.ByDate.Reverse }}
+{{ $config := dict
+  "columns" (.Params.columns | default 2)
+  "len" (len $paginator.Pages)
+  "fill_image" (.Params.fill_image | default true)
+  "show_date" (.Params.show_date | default true)
+  "show_read_time" (.Params.show_read_time | default true)
+  "show_read_more" (.Params.show_read_more | default true)
+}}
+
+{{/* Check if any pages have author_notes to enable Alpine.js */}}
+{{ range .Pages }}
+  {{ if isset .Params "author_notes" }}
+    {{ $.Store.Set "has_alpine" true }}
+    <script>console.log('Author notes found in list - Alpine.js enabled');</script>
+    {{ break }}
+  {{ end }}
+{{ end }}
+
+<div class="flex flex-col items-center">
+
+  {{ partial "functions/render_view" (dict "fragment" "start" "page" $block "item" . "view" $view "config" $config) }}
+
+  {{ range $index, $item := $paginator.Pages }}
+  {{ partial "functions/render_view" (dict "page" . "item" . "view" $view "index" $index "config" $config) }}
+  {{end}}
+
+  {{ partial "functions/render_view" (dict "fragment" "end" "page" $block "item" . "view" $view) }}
+
+  {{ partial "components/paginator" . }}
+
+</div>
+
+{{ end }}

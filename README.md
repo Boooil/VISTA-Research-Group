@@ -6,8 +6,6 @@
 
 > 聚焦三维战场态势仿真、智能推演与作战辅助分析
 
-[![Deploy Hugo site to GitHub Pages](https://github.com/vista-research-group/vista-research-group.github.io/actions/workflows/deploy.yml/badge.svg)](https://github.com/vista-research-group/vista-research-group.github.io/actions/workflows/deploy.yml)
-
 ---
 
 ## 目录
@@ -323,6 +321,134 @@ user_groups:
 
 个人详细介绍（可选）
 ```
+
+### 配置首页 Hero 背景
+
+Home 页顶部的 Hero 区域支持三种背景样式：**纯色**、**渐变** 和 **图片**。配置位于 `content/_index.md` 的 hero block 中。
+
+三种背景的优先级为：`image` > `gradient` > `color`（同时配置时，靠前的优先生效）。
+
+#### 纯色背景
+
+```yaml
+sections:
+  - block: hero
+    id: hero
+    content:
+      title: "VISTA Research Group"
+      text: |
+        维势研究组<br>
+        ...
+    design:
+      background:
+        color: "#1e3a8a"               # 深蓝色
+        text_color_light: true          # 启用浅色文字（深色背景时推荐开启）
+```
+
+支持明/暗双色模式：
+
+```yaml
+      background:
+        color:
+          light: "#e0e7ff"             # 浅色模式背景
+          dark: "#0f172a"              # 深色模式背景
+```
+
+#### 渐变背景
+
+```yaml
+      background:
+        gradient:
+          start: "#1e3a8a"             # 渐变起始色
+          end: "#0f172a"               # 渐变结束色
+          direction: "135"             # 渐变角度（默认 135°，45°=左上到右下）
+        text_color_light: true
+```
+
+#### 图片背景
+
+1. 将横幅图片放入 `assets/media/` 目录（推荐尺寸 **1920×800** 像素）
+2. 在 hero block 中配置：
+
+```yaml
+      background:
+        image:
+          filename: hero-banner.jpg    # 图片文件名
+          size: cover                  # cover | contain | actual（默认 cover）
+          position: center             # left | center | right（默认 center）
+```
+
+> 图片会**自动**处理为 1920px 宽 WebP 格式，并叠加 40% 黑色遮罩以确保文字可读。SVG 图片跳过硬编码处理直接使用。
+
+### 替换图标
+
+网站中多处使用图标（首页 Research Highlights、作者社交链接、项目/论文外部链接等），图标通过 `pack/name` 格式引用，统一由 `get_icon.html` 解析渲染。
+
+#### 图标格式说明
+
+```
+[pack/]icon-name
+```
+
+- `icon-name` — 不带 `/` 时默认使用 `hero` 包（Heroicons v2）
+- `pack/icon-name` — 指定图标包，例如 `brands/github`、`hb/python`
+
+#### 内置图标包一览
+
+所有内置图标包位于 `_vendor/github.com/HugoBlox/hugo-blox-builder/modules/blox-tailwind/data/icons/`，文件名即包名：
+
+| 包名 | 数据文件 | 说明 | 示例 |
+|------|---------|------|------|
+| `hero` | `data/icons/hero.json` | Heroicons v2（默认包），含 outline 和 solid 两种风格 | `globe-alt`、`cpu-chip-solid` |
+| `brands` | `data/icons/brands.yaml` | 品牌 Logo | `brands/github`、`brands/twitter`、`brands/weixin` |
+| `hb` | `data/icons/hb.yaml` | Hugo Blox 自定义图标 | `hb/python`、`hb/code-bracket`、`hb/magnifying-glass` |
+| `academicons` | `data/icons/academicons.json` | Academicons 学术图标 | `academicons/google-scholar`、`academicons/orcid` |
+| `devicon` | `data/icons/devicon.json` | Devicon 技术栈图标 | `devicon/tensorflow`、`devicon/python` |
+
+> **查看包内完整图标列表**：打开对应数据文件搜索 `"icon-name"` 即可确认是否存在。Heroicons 也可在 https://heroicons.com/ 浏览（outline = 不加后缀，solid = 加 `-solid` 后缀）。
+
+#### Hero 图标风格切换
+
+Heroicons 同时提供了 **outline**（线框）和 **solid**（实心填充）两种风格，只需给图标名加 `-solid` 后缀即可切换：
+
+```yaml
+# outline 风格（默认）
+icon: "globe-alt"
+
+# solid 风格
+icon: "globe-alt-solid"
+```
+
+#### 各场景图标配置位置
+
+| 场景 | 配置位置 | 字段格式 |
+|------|---------|---------|
+| 首页 Research Highlights | `content/_index.md` → `features` 块 → `items[].icon` | `icon: "globe-alt"` |
+| 作者社交链接 | `content/authors/<name>/_index.md` → `social[].icon` + `social[].icon_pack` | `icon: github` + `icon_pack: fab` → 自动映射为 `brands/github` |
+| 项目/论文外部链接 | `content/project/.../index.md` → `links[].icon` + `links[].icon_pack` | `icon: file` + `icon_pack: fas` |
+| 短代码调用 | Markdown 内容中 | `{{</* icon name="hero/sparkles" */>}}` |
+
+> **作者社交链接的 `icon_pack` 映射**：`fab` → `brands`，`fas` → `hero`（solid），`far` → `hero`（outline），`ai` → `academicons`。
+
+#### 使用自定义 SVG 图标
+
+如果内置图标不满足需求，可以将自定义 SVG 文件放入 `assets/media/icons/<pack>/` 目录，然后通过 `pack/filename`（不含 `.svg` 后缀）引用。
+
+**示例：**
+
+1. 放置 SVG 文件：
+   ```
+   assets/media/icons/custom/
+   ├── battlefield.svg
+   └── wargame.svg
+   ```
+
+2. 在配置中使用：
+   ```yaml
+   icon: "custom/battlefield"
+   ```
+
+> `get_icon.html` 的查找优先级：内置图标数据 → `assets/media/icons/<pack>/<name>.svg` → 回退到 Hugo 默认图标。自定义 SVG 建议使用 `viewBox="0 0 24 24"`、`stroke="currentColor"` 以保持与 Heroicons 一致的尺寸和主题色适配。
 
 ---
 

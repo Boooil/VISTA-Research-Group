@@ -1,0 +1,19 @@
+/* =============================================================================
+   VISTA Custom Styles
+   ============================================================================= */
+
+/* Sidebar spacer width: 256px → 128px */
+@media (min-width: 1024px) {
+  .hb-sidebar-container {
+    width: 8rem; /* was lg:w-64 (16rem) → lg:w-32 (8rem) */
+  }
+}
+
+/* Center navbar menu items between brand and right icons */
+@media (min-width: 1024px) {
+  .navbar-nav {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

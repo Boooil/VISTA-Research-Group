@@ -1,0 +1,83 @@
+{{/* Hugo Blox: Hero Block - Preact Wrapper */}}
+{{/* Project override: adds background image/color/gradient support */}}
+{{/* Documentation: https://hugoblox.com/blocks/ */}}
+{{/* License: https://github.com/HugoBlox/hugo-blox-builder/blob/main/LICENSE.md */}}
+
+{{/* Initialize variables */}}
+{{ $page := .wcPage }}
+{{ $block := .wcBlock }}
+{{ $block_id := .wcIdentifier | default (printf "hero-%d" (now.Unix)) }}
+
+{{/* Background handling: image > gradient > color */}}
+{{ $bg_style := "" }}
+{{ $bg_class := "" }}
+{{ $extra_style := "" }}
+
+{{ with $block.design.background }}
+
+  {{/* --- Image --- */}}
+  {{ if .image.filename }}
+    {{ $bg_img := resources.Get (printf "media/%s" .image.filename) }}
+    {{ if $bg_img }}
+      {{ if ne $bg_img.MediaType.SubType "svg" }}
+        {{ $bg_img = $bg_img.Fit "1920x1920 webp" }}
+      {{ end }}
+      {{ $bg_size := .image.size | default "cover" }}
+      {{ $bg_position := .image.position | default "center" }}
+      {{ $overlay := "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4))" }}
+      {{ $bg_style = printf "background-image: %s, url(%s); background-size: auto, %s; background-position: 0 0, %s; background-repeat: repeat, no-repeat;" $overlay $bg_img.RelPermalink $bg_size $bg_position }}
+      {{ $bg_class = "bg-fixed" }}
+    {{ else }}
+      {{ errorf "Couldn't find hero background image `%s` in the `assets/media/` folder - please add it." .image.filename }}
+    {{ end }}
+
+  {{/* --- Gradient --- */}}
+  {{ else if .gradient }}
+    {{ $start := .gradient.start | default "#1e3a8a" }}
+    {{ $end := .gradient.end | default "#0f172a" }}
+    {{ $dir := .gradient.direction | default "135" }}
+    {{ $bg_style = printf "background-image: linear-gradient(%sdeg, %s, %s);" (string $dir) $start $end }}
+
+  {{/* --- Solid Color --- */}}
+  {{ else if .color }}
+    {{ if reflect.IsMap .color }}
+      {{ $bg_style = printf "background-color: %s;" .color.light }}
+      {{ with .color.dark }}
+        {{ $extra_style = printf "@media (prefers-color-scheme: dark) { #%s { background-color: %s; background-image: none; } }" $block_id . }}
+      {{ end }}
+    {{ else }}
+      {{ $bg_style = printf "background-color: %s;" .color }}
+    {{ end }}
+  {{ end }}
+
+  {{/* Text color: if light text requested (dark background) */}}
+  {{ if .text_color_light }}
+    {{ $extra_style = printf "%s #%s h1 { color: #f1f5f9 !important; } #%s p { color: #cbd5e1 !important; } #%s a { color: #93c5fd !important; }" $extra_style $block_id $block_id $block_id }}
+  {{ end }}
+
+{{ end }}
+
+{{/* Prepare props for the Preact component */}}
+{{ $props := dict
+  "content" $block.content
+  "design" $block.design
+  "id" $block_id
+}}
+
+{{/* Convert props to JSON for client-side rendering */}}
+{{ $propsJSON := $props | jsonify }}
+
+{{/* Output extra CSS if needed */}}
+{{ if $extra_style }}
+  <style>{{ $extra_style | safeCSS }}</style>
+{{ end }}
+
+{{/* Render a container that Preact will populate */}}
+<div
+  id="{{ $block_id }}"
+  class="hero-block-container {{ $bg_class }}"
+  style="{{ $bg_style | safeCSS }}"
+  data-props='{{ $propsJSON | safeHTML }}'
+  data-hero-render="immediate"
+>
+</div>

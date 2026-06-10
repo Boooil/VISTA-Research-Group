@@ -1,0 +1,52 @@
+{{/* Left alignment / width is set so that multiple blocks with this view & variable length content all left align. */}}
+{{/* Width control bar — only shown on publication list pages */}}
+{{ $widths := slice
+  (dict "key" "compact"  "label" "紧凑" "style" "max-width: 65ch;"   "center" true  "desc" "65ch · 与标题对齐")
+  (dict "key" "standard" "label" "标准" "style" "max-width: 48rem;"  "center" true  "desc" "48rem · 适中宽度")
+  (dict "key" "wide"     "label" "宽栏" "style" "max-width: 56rem;"  "center" true  "desc" "56rem · 更宽")
+  (dict "key" "full"     "label" "铺满" "style" "max-width: none;"   "center" false "desc" "不限宽 · 全屏")
+}}
+<div
+  x-data="{
+    widthMode: 'compact',
+    widthStyle: 'max-width: 65ch;',
+    center: true,
+    widthOptions: {{ $widths | jsonify }},
+    init() {
+      const saved = localStorage.getItem('pub-width-mode');
+      const found = this.widthOptions.find(o => o.key === saved);
+      if (found) {
+        this.widthMode = found.key;
+        this.widthStyle = found.style;
+        this.center = found.center;
+      }
+    },
+    setWidth(mode) {
+      this.widthMode = mode;
+      const found = this.widthOptions.find(o => o.key === mode);
+      if (found) {
+        this.widthStyle = found.style;
+        this.center = found.center;
+      }
+      localStorage.setItem('pub-width-mode', mode);
+    }
+  }">
+  {{/* Width Toggle Bar */}}
+  <div class="mb-4 flex items-center gap-2 justify-end">
+    <span class="text-xs text-gray-400 dark:text-gray-500 mr-1 hidden sm:inline">宽度</span>
+    <template x-for="opt in widthOptions" :key="opt.key">
+      <button
+        @click="setWidth(opt.key)"
+        :class="widthMode === opt.key
+          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 ring-1 ring-primary-300'
+          : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+        :title="opt.desc"
+        class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+        x-text="opt.label"
+      ></button>
+    </template>
+  </div>
+
+  {{/* Citation list container — width is dynamic */}}
+  <div class="mt-16 sm:mt-20 w-full" :style="widthStyle" :class="center ? 'mx-auto' : ''">
+  <div class="flex flex-col space-y-3">

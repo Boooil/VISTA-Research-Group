@@ -1,0 +1,96 @@
+{{/* Author card — shared between authors list and team-showcase block */}}
+{{ $person := . }}
+{{ $avatar := ($person.Resources.ByType "image").GetMatch "*avatar*" }}
+{{ $link := $person.RelPermalink }}
+
+<div class="group relative">
+  <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+
+    {{/* Avatar */}}
+    {{ if $avatar }}
+    <a href="{{ $link }}" class="block relative h-64 overflow-hidden">
+      {{ $image := $avatar.Fill "800x800 Center webp" }}
+      <img src="{{ $image.RelPermalink }}"
+           alt="{{ $person.Title }}"
+           width="{{ $image.Width }}"
+           height="{{ $image.Height }}"
+           loading="lazy"
+           class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+
+      {{/* Gradient Overlay */}}
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    </a>
+    {{ end }}
+
+    {{/* Content */}}
+    <div class="p-6">
+      {{/* Name */}}
+      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+        <a href="{{ $link }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+          {{ $person.Title }}
+        </a>
+      </h3>
+
+      {{/* Role & Organization */}}
+      <div class="text-gray-600 dark:text-gray-400 mb-3">
+        {{ with $person.Params.role }}
+        <p class="font-medium">{{ . }}</p>
+        {{ end }}
+
+        {{ with $person.Params.organizations }}
+          {{ range first 1 . }}
+          <p class="text-sm mt-1">{{ .name }}</p>
+          {{ end }}
+        {{ end }}
+      </div>
+
+      {{/* Bio */}}
+      {{ with $person.Params.bio }}
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+        {{ . }}
+      </p>
+      {{ end }}
+
+      {{/* Interests */}}
+      {{ with $person.Params.interests }}
+      <div class="mb-4">
+        <div class="flex flex-wrap gap-1">
+          {{ range first 3 . }}
+          <span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded">
+            {{ . }}
+          </span>
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+
+      {{/* Social Links */}}
+      {{ with $person.Params.social }}
+      <div class="flex gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+        {{ range . }}
+        {{ $link := .url | default .link }}
+        {{ $scheme := (urls.Parse $link).Scheme }}
+        {{ $target := "" }}
+        {{ if not $scheme }}
+          {{ $link = (.url | default .link) | relLangURL }}
+          {{ if eq (path.Ext $link) ".pdf" }}{{ $target = "target=\"_blank\" rel=\"noopener\"" }}{{ end }}
+        {{ else if in (slice "http" "https") $scheme }}
+          {{ $target = "target=\"_blank\" rel=\"noopener\"" }}
+        {{ end }}
+
+        {{/* Map legacy Wowchemy icon packs to Hugo Blox Tailwind packs */}}
+        {{ $pack_map := dict "fas" "hero" "far" "hero" "fab" "brands" "ai" "academicons" }}
+        {{ $pack := index $pack_map .icon_pack | default .icon_pack | default "hero" }}
+        <a href="{{ $link | safeURL }}"
+           {{ $target | safeHTMLAttr }}
+           aria-label="{{ .icon }}"
+           {{ with .label }} title="{{ . }}"{{ end }}
+           class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+          {{ partial "functions/get_icon" (dict "name" .icon "pack" $pack "attributes" "class=\"w-5 h-5\"") }}
+        </a>
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,77 @@
+{{ define "main" }}
+
+{{/* Title / Subtitle / Summary */}}
+<div class="max-w-prose mx-auto px-6 md:px-0">
+  <div class="flex items-baseline gap-4 mb-2">
+    <h1 class="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white">{{ .Title }}</h1>
+    {{ with .Params.subtitle }}
+    <span class="text-lg text-gray-500 dark:text-gray-400">{{ . | markdownify }}</span>
+    {{ end }}
+  </div>
+
+  {{ with .Params.summary }}
+  <p class="text-gray-500 dark:text-gray-400 mb-0">{{ . | markdownify }}</p>
+  {{ end }}
+
+  {{/* Separator */}}
+  <hr class="border-0 border-t border-gray-300 dark:border-gray-600 mt-6 mb-8">
+</div>
+
+{{/* Team Card Grid */}}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+  {{/* Collect authors — only those in the authors section that have a role param */}}
+  {{ $authors := slice }}
+  {{ range where site.Pages "Section" "authors" }}
+    {{ if .Params.role }}
+      {{ $authors = $authors | append . }}
+    {{ end }}
+  {{ end }}
+
+  {{/* Sort by Title (ascending) */}}
+  {{ $authors = sort $authors "Title" "asc" }}
+
+  {{/* Group by user_groups */}}
+  {{ $all_groups := slice }}
+  {{ $author_groups := dict }}
+  {{ range $authors }}
+    {{ $groups := .Params.user_groups | default (slice "团队成员") }}
+    {{ range $groups }}
+      {{ $group := . }}
+      {{ $existing := index $author_groups $group | default slice }}
+      {{ $author_groups = merge $author_groups (dict $group ($existing | append $)) }}
+      {{ if not (in $all_groups $group) }}
+        {{ $all_groups = $all_groups | append $group }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+
+  {{/* Show members in grid, with group headers if multiple groups */}}
+  {{ if gt (len $all_groups) 1 }}
+    {{ range $group_name := $all_groups }}
+      {{ $members := index $author_groups $group_name }}
+      {{ if $members }}
+        <div class="mb-12">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+            {{ $group_name | markdownify }}
+          </h2>
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {{ range $person := $members }}
+              {{ partial "authors/card.html" $person }}
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+    {{ end }}
+  {{ else }}
+    {{/* Single group or no group — show flat grid */}}
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {{ range $person := $authors }}
+        {{ partial "authors/card.html" $person }}
+      {{ end }}
+    </div>
+  {{ end }}
+
+</div>
+
+{{ end }}

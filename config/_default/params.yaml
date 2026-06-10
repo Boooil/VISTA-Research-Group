@@ -17,7 +17,7 @@ header:
     enable: true
     align: "center"
     show_logo: true
-    show_language: false
+
     show_search: true
     show_theme_chooser: false
     highlight_active_link: true
@@ -90,11 +90,16 @@ sections:
       view: citation
 
   # 6. Team Preview
-  - block: people
+  - block: team-showcase
     id: team
-    content: ""
+    content:
+      title: "团队成员"
+      user_groups:
+        - Group Lead
+        - Core Researchers
+        - 在读博士
     design:
-      columns: "1"
-      show_interests: false
+      show_interests: true
       show_role: true
       show_social: true
+      show_organizations: true
