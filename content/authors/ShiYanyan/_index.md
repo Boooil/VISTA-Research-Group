@@ -2,12 +2,12 @@
 title: "史燕燕"
 role: "研究员"
 avatar_filename: avatar.jpg
-bio: "高级工程师，研究方向：xxx"
+bio: "高级工程师"
 interests:
 social:
   - icon: envelope
     icon_pack: fas
-    link: "mailto:boil99@foxmail.com"
+    link: "#"
   - icon: google-scholar
     icon_pack: ai
     link: "#"
