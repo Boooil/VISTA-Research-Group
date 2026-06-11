@@ -1,5 +1,6 @@
 ---
 title: "战场目标三维模型自动对齐方法、系统及电子设备"
+content_type: publication
 authors:
   - WangBoyu
   - GaoShengxuan

@@ -1,5 +1,6 @@
 ---
 title: "Behavior Generation for Heterogeneous Agents in Urban Simulation Deduction: A Multi-Stage Approach Based on Large Language Models"
+content_type: publication
 authors:
   - MengQingxin
   - Yongzhen Wang

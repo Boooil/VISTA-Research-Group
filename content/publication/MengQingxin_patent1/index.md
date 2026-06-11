@@ -1,5 +1,6 @@
 ---
 title: "基于大语言模型的行为树自动生成方法、装置及电子设备"
+content_type: publication
 authors:
   - 夏晓凯
   - MengQingxin

@@ -1,5 +1,6 @@
 ---
 title: "UrbanMUDA: an LLM Agent-based Site Selection Approach for Urban Military Unit Deployment"
+content_type: publication
 authors:
   - PengBotao
   - Yongzhen Wang

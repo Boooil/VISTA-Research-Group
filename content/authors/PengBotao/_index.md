@@ -1,5 +1,6 @@
 ---
 title: "彭伯韬"
+content_type: author
 pinyin: "pengbotao"
 role: "在读硕士"
 avatar_filename: avatar.jpg

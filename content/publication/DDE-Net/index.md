@@ -1,5 +1,6 @@
 ---
 title: "DDE-Net: Dynamic Density-Driven Estimation for Arbitrary-Oriented Object Detection"
+content_type: publication
 authors:
   - WangBoyu
   - Donglin Jing

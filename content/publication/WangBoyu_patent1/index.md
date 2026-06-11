@@ -1,5 +1,6 @@
 ---
 title: "一种基于密度掩膜的遥感图像检测处理方法和系统"
+content_type: publication
 authors:
   - WangBoyu
   - 徐珞

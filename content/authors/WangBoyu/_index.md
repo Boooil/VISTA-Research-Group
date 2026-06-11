@@ -1,5 +1,6 @@
 ---
 title: "王博宇"
+content_type: author
 pinyin: "wangboyu"
 role: "在读博士"
 avatar_filename: avatar.jpg

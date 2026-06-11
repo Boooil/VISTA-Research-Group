@@ -44,6 +44,9 @@ collections:
     identifier_field: "pinyin"
     editor:
       preview: true
+    filter:
+      field: "content_type"
+      value: "author"
     fields:
       - label: "姓名"
         name: "title"
@@ -131,6 +134,9 @@ collections:
         widget: "markdown"
         required: false
         hint: "可选，显示在作者详情页"
+      - name: "content_type"
+        widget: "hidden"
+        default: "author"
 
   # ===========================================================================
   # 2. 成果动态 (Post)
@@ -145,6 +151,9 @@ collections:
     summary: "{{year}}-{{month}}-{{day}} — {{title}}"
     editor:
       preview: true
+    filter:
+      field: "content_type"
+      value: "post"
     fields:
       - label: "标题"
         name: "title"
@@ -203,6 +212,9 @@ collections:
         name: "body"
         widget: "markdown"
         hint: "支持标准 Markdown 格式"
+      - name: "content_type"
+        widget: "hidden"
+        default: "post"
 
   # ===========================================================================
   # 3. 科研项目 (Project)
@@ -216,6 +228,9 @@ collections:
     slug: "{{slug}}"
     editor:
       preview: true
+    filter:
+      field: "content_type"
+      value: "project"
     fields:
       - label: "项目名称"
         name: "title"
@@ -284,6 +299,9 @@ collections:
         name: "body"
         widget: "markdown"
         required: false
+      - name: "content_type"
+        widget: "hidden"
+        default: "project"
 
   # ===========================================================================
   # 4. 论文著作 (Publication)
@@ -297,6 +315,9 @@ collections:
     slug: "{{slug}}"
     editor:
       preview: true
+    filter:
+      field: "content_type"
+      value: "publication"
     fields:
       - label: "论文标题"
         name: "title"
@@ -370,6 +391,9 @@ collections:
         widget: "markdown"
         required: false
         hint: "论文附加说明（可选）"
+      - name: "content_type"
+        widget: "hidden"
+        default: "publication"
 
   # ===========================================================================
   # 5. 独立页面 (Research / Resources / About)

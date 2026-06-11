@@ -1,5 +1,6 @@
 ---
 title: "孟庆昕"
+content_type: author
 pinyin: "mengqingxin"
 role: "在读硕士"
 avatar_filename: avatar.jpg

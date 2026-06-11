@@ -1,5 +1,6 @@
 ---
 title: "史燕燕"
+content_type: author
 pinyin: "shiyanyan"
 role: "研究员"
 avatar_filename: avatar.jpg
