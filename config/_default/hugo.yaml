@@ -81,6 +81,12 @@ imaging:
   quality: 90
   resampleFilter: "Lanczos"
 
+# Cascade front matter for sections
+cascade:
+  - target:
+      path: "/publication"
+    view: citation
+
 # Minification
 minify:
   tdewolff:
