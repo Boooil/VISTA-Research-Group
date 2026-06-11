@@ -42,6 +42,9 @@ collections:
     create: true
     slug: "{{slug}}"
     identifier_field: "pinyin"
+    filter:
+      field: "pinyin"
+      pattern: "^[a-z]+$"
     editor:
       preview: true
     fields:
@@ -143,6 +146,9 @@ collections:
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     summary: "{{year}}-{{month}}-{{day}} — {{title}}"
+    filter:
+      field: "date"
+      pattern: ".+"
     editor:
       preview: true
     fields:
@@ -214,6 +220,9 @@ collections:
     path: "{{slug}}/index"
     create: true
     slug: "{{slug}}"
+    filter:
+      field: "date"
+      pattern: ".+"
     editor:
       preview: true
     fields:
@@ -295,6 +304,9 @@ collections:
     path: "{{slug}}/index"
     create: true
     slug: "{{slug}}"
+    filter:
+      field: "publication_types"
+      pattern: ".+"
     editor:
       preview: true
     fields:
