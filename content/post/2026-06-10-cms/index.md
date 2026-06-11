@@ -2,7 +2,7 @@
 title: CMS后台编辑提交测试
 date: 2026-06-11
 authors:
-  - WangBoyu/_index
+  - wangboyu
 summary: 这是一个测试。
 tags:
   - Test

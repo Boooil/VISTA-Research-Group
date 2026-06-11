@@ -166,7 +166,7 @@ collections:
         name: "authors"
         widget: "relation"
         collection: "authors"
-        value_field: "{{slug}}"
+        value_field: "pinyin"
         search_fields: ["title"]
         display_fields: ["title"]
         multiple: true
@@ -317,7 +317,7 @@ collections:
         name: "authors"
         widget: "relation"
         collection: "authors"
-        value_field: "{{slug}}"
+        value_field: "pinyin"
         search_fields: ["title"]
         display_fields: ["title"]
         multiple: true
