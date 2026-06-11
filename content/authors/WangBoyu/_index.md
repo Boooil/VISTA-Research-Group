@@ -2,7 +2,7 @@
 title: "王博宇"
 role: "在读博士"
 avatar_filename: avatar.jpg
-bio: "研究方向：单视图三维重建、三维场景局部更新、目标识别及语义分析"
+bio: ""
 interests:
   - Single-view 3D reconstruction
   - Local Updating of 3D Scenes
