@@ -38,11 +38,21 @@
         <p class="text-xl text-primary-600 dark:text-primary-400 font-medium mb-2">{{ . }}</p>
         {{ end }}
 
-        {{ with .Params.organizations }}
-          {{ range first 1 . }}
-          <p class="text-gray-500 dark:text-gray-400 mb-3">{{ .name }}</p>
-          {{ end }}
-        {{ end }}
+        {{- if or .Params.organizations .Params.email }}
+        <p class="text-gray-500 dark:text-gray-400 mb-3">
+          {{- with .Params.organizations }}
+            {{- range first 1 . }}
+            <span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ .name }}</span>
+            {{- end }}
+          {{- end }}
+          {{- if and .Params.organizations .Params.email }}
+            <span class="mx-2 text-gray-300 dark:text-gray-600">|</span>
+          {{- end }}
+          {{- with .Params.email }}
+            <span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ . }}</span>
+          {{- end -}}
+        </p>
+        {{- end }}
 
         {{ with .Params.bio }}
         <p class="text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">{{ . }}</p>
@@ -72,7 +82,7 @@
           {{ else if in (slice "http" "https") $scheme }}
             {{ $target = "target=\"_blank\" rel=\"noopener\"" }}
           {{ end }}
-          {{ $pack_map := dict "fas" "hero" "far" "hero" "fab" "brands" "ai" "academicons" }}
+          {{ $pack_map := dict "ai" "academicons" }}
           {{ $pack := index $pack_map .icon_pack | default .icon_pack | default "hero" }}
           <a href="{{ $link | safeURL }}"
              {{ $target | safeHTMLAttr }}
@@ -178,7 +188,7 @@
       {{ end }}
     {{ end }}
 
-    {{ $authors = sort $authors "Title" "asc" }}
+    {{ $authors = sort $authors "Params.pinyin" "asc" }}
 
     {{ if not $authors }}
       <p class="text-center text-gray-500 dark:text-gray-400 py-12">暂无团队成员信息。</p>

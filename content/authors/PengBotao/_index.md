@@ -1,5 +1,6 @@
 ---
 title: "彭伯韬"
+pinyin: "pengbotao"
 role: "在读硕士"
 avatar_filename: avatar.jpg
 bio: "coder"
@@ -12,9 +13,6 @@ social:
   - icon: github
     icon_pack: fab
     link: "https://github.com/gatro-adu"
-  - icon: orcid
-    icon_pack: ai
-    link: ""
 organizations:
   - name: VISTA Research Group
     url: ""

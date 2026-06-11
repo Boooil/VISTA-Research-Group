@@ -17,3 +17,42 @@
     transform: translateX(-50%);
   }
 }
+
+/* =============================================================================
+   Inline Code — fix prose plugin rendering
+   ============================================================================= */
+
+/* Light mode: subtle blue-tinted background */
+.prose :not(pre) > code {
+  color: var(--color-primary-700);
+  background-color: var(--color-primary-50);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.875em;
+  word-break: break-word;
+}
+
+/* Remove the prose plugin's backtick pseudo-elements */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+/* Don't style code inside links separately */
+.prose a code {
+  color: inherit;
+  background: transparent;
+  padding: 0;
+}
+
+/* Dark mode: light blue text on accent-tinted background */
+.dark .prose :not(pre) > code {
+  color: var(--color-accent-light);
+  background-color: rgba(56, 189, 248, 0.12);
+}
+
+.dark .prose a code {
+  color: inherit;
+  background: transparent;
+}

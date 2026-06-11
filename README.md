@@ -294,7 +294,8 @@ links:
 ```yaml
 ---
 title: "姓名"
-role: "Group Lead"                # Group Lead / Core Researcher / Collaborator
+pinyin: "pinyin"                  # 拼音排序键（必填，全小写无空格，如 wangboyu）
+role: "Group Lead"                # Group Lead / Core Researcher / 在读博士 / 在读硕士 / 研究员
 avatar_filename: avatar.jpg
 bio: "个人简介（1-2句话）"
 interests:
@@ -310,17 +311,15 @@ social:
 organizations:
   - name: VISTA Research Group
     url: ""
-education:
-  courses:
-    - course: PhD in XX
-      institution: Example University
-      year: ""
+email: "xxx@example.com"          # 显示在作者详情页，与 organization 同行，用 | 分隔
 user_groups:
-  - Group Lead           # 所属分组
+  - Group Lead                    # 所属分组
 ---
 
 个人详细介绍（可选）
 ```
+
+> **`pinyin` 字段说明**：用于团队成员按拼音排序。同一分组内成员按此字段升序排列。必须填写，格式为全小写无空格拼音（如 `wangboyu`、`gaoshengxuan`）。
 
 ### 配置首页 Hero 背景
 
@@ -380,75 +379,78 @@ sections:
 
 > 图片会**自动**处理为 1920px 宽 WebP 格式，并叠加 40% 黑色遮罩以确保文字可读。SVG 图片跳过硬编码处理直接使用。
 
-### 替换图标
+### 图标系统
 
-网站中多处使用图标（首页 Research Highlights、作者社交链接、项目/论文外部链接等），图标通过 `pack/name` 格式引用，统一由 `get_icon.html` 解析渲染。
+网站图标通过 Font Awesome 6（Free）渲染，支持以下 `icon_pack`：
 
-#### 图标格式说明
+#### 可用 icon_pack 一览
 
-```
-[pack/]icon-name
-```
+| icon_pack | 来源 | 说明 | 免费？ |
+|-----------|------|------|--------|
+| `fas` | [Font Awesome Solid](https://fontawesome.com/icons?f=classic&s=solid) | 实心图标 | ✅ Free |
+| `far` | [Font Awesome Regular](https://fontawesome.com/icons?f=classic&s=regular) | 线框图标 | ✅ Free |
+| `fab` | [Font Awesome Brands](https://fontawesome.com/icons?f=classic&s=brands) | 品牌 Logo | ✅ Free |
+| `ai` | [Academicons](https://jpswalsh.github.io/academicons/) | 学术专用（orcid, google-scholar 等） | ✅ Free |
+| `emoji` | Emoji | 表情符号 | ✅ Free |
+| `fa-light` | Font Awesome Light | 细线风格 | ❌ Pro |
+| `fa-thin` | Font Awesome Thin | 极细风格 | ❌ Pro |
+| `fa-duotone` | Font Awesome Duotone | 双色调 | ❌ Pro |
+| `fa-sharp` | Font Awesome Sharp | 锐利风格 | ❌ Pro |
 
-- `icon-name` — 不带 `/` 时默认使用 `hero` 包（Heroicons v2）
-- `pack/icon-name` — 指定图标包，例如 `brands/github`、`hb/python`
+> **注意**：Pro 版 icon_pack 需要购买 [Font Awesome Pro](https://fontawesome.com/plans) 许可证并替换 CDN 链接为自己的 Kit 链接（`layouts/_partials/hooks/head-end/fontawesome.html`）。
 
-#### 内置图标包一览
+#### 在 Font Awesome 官网查找图标
 
-所有内置图标包位于 `_vendor/github.com/HugoBlox/hugo-blox-builder/modules/blox-tailwind/data/icons/`，文件名即包名：
+1. 打开 [fontawesome.com/icons](https://fontawesome.com/icons)
+2. 搜索想要的图标名（如 `envelope`、`github`、`x-twitter`）
+3. 确认该图标标记了 **Free** 标签
+4. 将图标名填入 `icon`，根据风格选择对应的 `icon_pack`
 
-| 包名 | 数据文件 | 说明 | 示例 |
-|------|---------|------|------|
-| `hero` | `data/icons/hero.json` | Heroicons v2（默认包），含 outline 和 solid 两种风格 | `globe-alt`、`cpu-chip-solid` |
-| `brands` | `data/icons/brands.yaml` | 品牌 Logo | `brands/github`、`brands/twitter`、`brands/weixin` |
-| `hb` | `data/icons/hb.yaml` | Hugo Blox 自定义图标 | `hb/python`、`hb/code-bracket`、`hb/magnifying-glass` |
-| `academicons` | `data/icons/academicons.json` | Academicons 学术图标 | `academicons/google-scholar`、`academicons/orcid` |
-| `devicon` | `data/icons/devicon.json` | Devicon 技术栈图标 | `devicon/tensorflow`、`devicon/python` |
+#### 各场景图标配置
 
-> **查看包内完整图标列表**：打开对应数据文件搜索 `"icon-name"` 即可确认是否存在。Heroicons 也可在 https://heroicons.com/ 浏览（outline = 不加后缀，solid = 加 `-solid` 后缀）。
-
-#### Hero 图标风格切换
-
-Heroicons 同时提供了 **outline**（线框）和 **solid**（实心填充）两种风格，只需给图标名加 `-solid` 后缀即可切换：
-
-```yaml
-# outline 风格（默认）
-icon: "globe-alt"
-
-# solid 风格
-icon: "globe-alt-solid"
-```
-
-#### 各场景图标配置位置
-
-| 场景 | 配置位置 | 字段格式 |
-|------|---------|---------|
-| 首页 Research Highlights | `content/_index.md` → `features` 块 → `items[].icon` | `icon: "globe-alt"` |
-| 作者社交链接 | `content/authors/<name>/_index.md` → `social[].icon` + `social[].icon_pack` | `icon: github` + `icon_pack: fab` → 自动映射为 `brands/github` |
-| 项目/论文外部链接 | `content/project/.../index.md` → `links[].icon` + `links[].icon_pack` | `icon: file` + `icon_pack: fas` |
+| 场景 | 配置位置 | 示例 |
+|------|---------|------|
+| 作者社交链接 | `content/authors/<name>/_index.md` → `social[]` | `icon: github` + `icon_pack: fab` |
+| 首页 Research Highlights | `content/_index.md` → `features` 块 → `items[].icon` | `icon: "globe-alt"`（默认 hero 包） |
+| 项目/论文外部链接 | `content/project/.../index.md` → `links[]` | `icon: file` + `icon_pack: fas` |
 | 短代码调用 | Markdown 内容中 | `{{</* icon name="hero/sparkles" */>}}` |
 
-> **作者社交链接的 `icon_pack` 映射**：`fab` → `brands`，`fas` → `hero`（solid），`far` → `hero`（outline），`ai` → `academicons`。
+#### 作者社交链接示例
+
+```yaml
+social:
+  - icon: envelope          # Font Awesome Solid
+    icon_pack: fas
+    link: "mailto:xxx@example.com"
+  - icon: github            # Font Awesome Brands
+    icon_pack: fab
+    link: "https://github.com/xxx"
+  - icon: orcid             # Academicons
+    icon_pack: ai
+    link: "https://orcid.org/xxxx"
+  - icon: bilibili          # Font Awesome Brands
+    icon_pack: fab
+    link: "https://space.bilibili.com/xxx"
+  - icon: x-twitter         # Font Awesome Brands (新版 X 图标)
+    icon_pack: fab
+    link: "https://x.com/xxx"
+```
 
 #### 使用自定义 SVG 图标
 
-如果内置图标不满足需求，可以将自定义 SVG 文件放入 `assets/media/icons/<pack>/` 目录，然后通过 `pack/filename`（不含 `.svg` 后缀）引用。
+如果 Font Awesome 和 Academicons 都不满足需求，可以将自定义 SVG 文件放入 `assets/media/icons/<pack>/`，通过 `pack/filename`（不含 `.svg`）引用：
 
-**示例：**
+```
+assets/media/icons/custom/
+├── battlefield.svg
+└── wargame.svg
+```
 
-1. 放置 SVG 文件：
-   ```
-   assets/media/icons/custom/
-   ├── battlefield.svg
-   └── wargame.svg
-   ```
+```yaml
+icon: "custom/battlefield"
+```
 
-2. 在配置中使用：
-   ```yaml
-   icon: "custom/battlefield"
-   ```
-
-> `get_icon.html` 的查找优先级：内置图标数据 → `assets/media/icons/<pack>/<name>.svg` → 回退到 Hugo 默认图标。自定义 SVG 建议使用 `viewBox="0 0 24 24"`、`stroke="currentColor"` 以保持与 Heroicons 一致的尺寸和主题色适配。
+> 自定义 SVG 建议使用 `viewBox="0 0 24 24"`、`stroke="currentColor"` 以适配主题色。
 
 ---
 

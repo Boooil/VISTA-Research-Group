@@ -1,5 +1,6 @@
 ---
 title: "孟庆昕"
+pinyin: "mengqingxin"
 role: "在读硕士"
 avatar_filename: avatar.jpg
 bio: ""
@@ -16,7 +17,7 @@ social:
     icon_pack: fab
     link: "https://github.com/Mencius2023"
   - icon: orcid
-    icon_pack: ai
+    icon_pack: fab
     link: "https://orcid.org/0009-0003-6283-4377"
 organizations:
   - name: VISTA Research Group

@@ -109,9 +109,11 @@ sections:
         - 在读博士
         - 在读硕士
         - 研究员
+      sort_by: "pinyin"
+      sort_ascending: true
     design:
       show_interests: true
       show_role: true
       show_social: true
-      show_organizations: truexiufu
+      show_organizations: true
 ---

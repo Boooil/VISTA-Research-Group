@@ -16,10 +16,10 @@
       <div>
         <h4 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">Quick Links</h4>
         <ul class="space-y-2 text-sm">
-          <li><a href="{{ printf "%sresearch/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Research</a></li>
-          <li><a href="{{ printf "%sproject/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Projects</a></li>
-          <li><a href="{{ printf "%spublication/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Publications</a></li>
-          <li><a href="{{ printf "%spost/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Posts</a></li>
+          <li><a href="{{ "/research/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Research</a></li>
+          <li><a href="{{ "/project/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Projects</a></li>
+          <li><a href="{{ "/publication/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Publications</a></li>
+          <li><a href="{{ "/post/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Posts</a></li>
         </ul>
       </div>
 
@@ -27,9 +27,9 @@
       <div>
         <h4 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">More</h4>
         <ul class="space-y-2 text-sm">
-          <li><a href="{{ printf "%sauthors/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Team</a></li>
-          <li><a href="{{ printf "%sresources/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">Resources</a></li>
-          <li><a href="{{ printf "%sabout/" site.Home.RelPermalink }}" class="text-slate-400 hover:text-white transition-colors">About</a></li>
+          <li><a href="{{ "/authors/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Team</a></li>
+          <li><a href="{{ "/resources/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">Resources</a></li>
+          <li><a href="{{ "/about/" | relLangURL | replaceRE "\\\\" "/" }}" class="text-slate-400 hover:text-white transition-colors">About</a></li>
           <li><a href="https://github.com/boooil/VISTA-Research-Group" class="text-slate-400 hover:text-white transition-colors" target="_blank" rel="noopener">GitHub</a></li>
         </ul>
       </div>

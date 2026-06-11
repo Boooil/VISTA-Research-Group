@@ -79,7 +79,7 @@
         {{ end }}
 
         {{/* Map legacy Wowchemy icon packs to Hugo Blox Tailwind packs */}}
-        {{ $pack_map := dict "fas" "hero" "far" "hero" "fab" "brands" "ai" "academicons" }}
+        {{ $pack_map := dict "ai" "academicons" }}
         {{ $pack := index $pack_map .icon_pack | default .icon_pack | default "hero" }}
         <a href="{{ $link | safeURL }}"
            {{ $target | safeHTMLAttr }}
