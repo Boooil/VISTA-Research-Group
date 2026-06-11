@@ -1,5 +1,6 @@
 ---
 title: "3D Battlefield Local Update Benchmark"
+content_type: post
 date: 2026-06-10
 authors:
   - WangBoyu

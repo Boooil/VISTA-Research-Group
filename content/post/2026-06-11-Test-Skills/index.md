@@ -1,5 +1,6 @@
 ---
 title: "用 Agent Skill 重构网页应用测试"
+content_type: post
 date: 2026-06-11
 authors:
   - MengQingxin
