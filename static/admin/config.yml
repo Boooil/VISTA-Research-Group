@@ -27,5 +27,436 @@ slug:
   clean_accents: true
   sanitize_replacement: "-"
 
-# --- Collections (Phase 2 将在此处添加) ---
-# collections: []
+# =============================================================================
+# Collections — 内容类型定义
+# =============================================================================
+collections:
+  # ===========================================================================
+  # 1. 团队成员 (Authors) — 必须放在最前面，其他 collection 的 relation widget 引用它
+  # ===========================================================================
+  - name: "authors"
+    label: "团队成员"
+    label_singular: "团队成员"
+    folder: "content/authors"
+    path: "{{slug}}/_index"
+    create: true
+    slug: "{{slug}}"
+    identifier_field: "pinyin"
+    editor:
+      preview: true
+    fields:
+      - label: "姓名"
+        name: "title"
+        widget: "string"
+        hint: "中文姓名，如「王博宇」"
+      - label: "拼音排序键"
+        name: "pinyin"
+        widget: "string"
+        hint: "全小写无空格拼音，如 wangboyu。用于团队成员列表排序"
+        pattern: ["^[a-z]+$", "必须为全小写字母，无空格"]
+      - label: "角色/身份"
+        name: "role"
+        widget: "select"
+        options:
+          - "Group Lead"
+          - "Core Researcher"
+          - "在读博士"
+          - "在读硕士"
+          - "研究员"
+      - label: "头像"
+        name: "avatar_filename"
+        widget: "image"
+        hint: "推荐正方形照片，400×400px"
+        required: false
+      - label: "个人简介"
+        name: "bio"
+        widget: "text"
+        required: false
+        hint: "1-2 句话简短介绍"
+      - label: "研究方向"
+        name: "interests"
+        widget: "list"
+        required: false
+        hint: "如「3D Reconstruction」「AI」"
+      - label: "社交链接"
+        name: "social"
+        widget: "list"
+        required: false
+        label_singular: "社交账号"
+        summary: "{{icon}}: {{link}}"
+        fields:
+          - label: "图标名"
+            name: "icon"
+            widget: "string"
+            hint: "Font Awesome 图标名，如 envelope, github"
+          - label: "图标包"
+            name: "icon_pack"
+            widget: "select"
+            options: ["fas", "fab", "far", "ai"]
+            default: "fas"
+          - label: "链接地址"
+            name: "link"
+            widget: "string"
+      - label: "所属机构"
+        name: "organizations"
+        widget: "list"
+        required: false
+        label_singular: "机构"
+        summary: "{{name}}"
+        fields:
+          - label: "机构名称"
+            name: "name"
+            widget: "string"
+          - label: "机构链接"
+            name: "url"
+            widget: "string"
+            required: false
+      - label: "邮箱"
+        name: "email"
+        widget: "string"
+        required: false
+      - label: "所属分组"
+        name: "user_groups"
+        widget: "select"
+        multiple: true
+        options:
+          - "Group Lead"
+          - "Core Researcher"
+          - "在读博士"
+          - "在读硕士"
+          - "研究员"
+        hint: "用于首页团队展示的分组筛选"
+      - label: "个人详细介绍"
+        name: "body"
+        widget: "markdown"
+        required: false
+        hint: "可选，显示在作者详情页"
+
+  # ===========================================================================
+  # 2. 成果动态 (Post)
+  # ===========================================================================
+  - name: "post"
+    label: "成果动态"
+    label_singular: "成果动态"
+    folder: "content/post"
+    path: "{{slug}}/index"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    summary: "{{year}}-{{month}}-{{day}} — {{title}}"
+    editor:
+      preview: true
+    fields:
+      - label: "标题"
+        name: "title"
+        widget: "string"
+        hint: "文章标题"
+      - label: "发布日期"
+        name: "date"
+        widget: "datetime"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        default: "{{now}}"
+      - label: "作者"
+        name: "authors"
+        widget: "relation"
+        collection: "authors"
+        value_field: "{{slug}}"
+        search_fields: ["title"]
+        display_fields: ["title"]
+        multiple: true
+        min: 1
+        hint: "选择文章作者（需先在「团队成员」中创建）"
+      - label: "摘要"
+        name: "summary"
+        widget: "text"
+        hint: "显示在文章列表页的简短摘要（1-3 句话）"
+      - label: "标签"
+        name: "tags"
+        widget: "list"
+        default: []
+      - label: "分类"
+        name: "categories"
+        widget: "list"
+        default: []
+        hint: "如 News, Research Update, Publication"
+      - label: "精选"
+        name: "featured"
+        widget: "boolean"
+        default: false
+        hint: "开启后将在首页重点展示"
+      - label: "封面图"
+        name: "image"
+        widget: "object"
+        collapsed: true
+        required: false
+        fields:
+          - label: "图片文件"
+            name: "filename"
+            widget: "image"
+            required: false
+            hint: "推荐尺寸 1200×630px"
+          - label: "图片说明"
+            name: "caption"
+            widget: "string"
+            required: false
+      - label: "正文"
+        name: "body"
+        widget: "markdown"
+        hint: "支持标准 Markdown 格式"
+
+  # ===========================================================================
+  # 3. 科研项目 (Project)
+  # ===========================================================================
+  - name: "project"
+    label: "科研项目"
+    label_singular: "科研项目"
+    folder: "content/project"
+    path: "{{slug}}/index"
+    create: true
+    slug: "{{slug}}"
+    editor:
+      preview: true
+    fields:
+      - label: "项目名称"
+        name: "title"
+        widget: "string"
+      - label: "副标题"
+        name: "subtitle"
+        widget: "string"
+        required: false
+      - label: "日期"
+        name: "date"
+        widget: "datetime"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+      - label: "摘要"
+        name: "summary"
+        widget: "text"
+      - label: "标签"
+        name: "tags"
+        widget: "list"
+        default: []
+      - label: "分类"
+        name: "categories"
+        widget: "list"
+        default: []
+      - label: "精选"
+        name: "featured"
+        widget: "boolean"
+        default: false
+      - label: "封面图"
+        name: "image"
+        widget: "object"
+        collapsed: true
+        required: false
+        fields:
+          - label: "图片文件"
+            name: "filename"
+            widget: "image"
+            required: false
+          - label: "图片说明"
+            name: "caption"
+            widget: "string"
+            required: false
+      - label: "外部链接"
+        name: "links"
+        widget: "list"
+        label_singular: "链接"
+        required: false
+        summary: "{{name}}: {{url}}"
+        fields:
+          - label: "图标名"
+            name: "icon"
+            widget: "string"
+            hint: "Font Awesome 图标名，如 file, github"
+          - label: "图标包"
+            name: "icon_pack"
+            widget: "select"
+            options: ["fas", "fab", "far", "ai"]
+            default: "fas"
+          - label: "链接名称"
+            name: "name"
+            widget: "string"
+          - label: "链接地址"
+            name: "url"
+            widget: "string"
+      - label: "正文"
+        name: "body"
+        widget: "markdown"
+        required: false
+
+  # ===========================================================================
+  # 4. 论文著作 (Publication)
+  # ===========================================================================
+  - name: "publication"
+    label: "论文著作"
+    label_singular: "论文著作"
+    folder: "content/publication"
+    path: "{{slug}}/index"
+    create: true
+    slug: "{{slug}}"
+    editor:
+      preview: true
+    fields:
+      - label: "论文标题"
+        name: "title"
+        widget: "string"
+      - label: "作者"
+        name: "authors"
+        widget: "relation"
+        collection: "authors"
+        value_field: "{{slug}}"
+        search_fields: ["title"]
+        display_fields: ["title"]
+        multiple: true
+        min: 1
+        hint: "选择论文作者"
+      - label: "发表日期"
+        name: "date"
+        widget: "datetime"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+      - label: "出版物类型"
+        name: "publication_types"
+        widget: "select"
+        multiple: true
+        options:
+          - label: "会议论文"
+            value: "paper-conference"
+          - label: "期刊论文"
+            value: "article-journal"
+          - label: "专利"
+            value: "patent"
+          - label: "软件著作权"
+            value: "software"
+          - label: "技术报告"
+            value: "report"
+          - label: "标准规范"
+            value: "standard"
+          - label: "专著"
+            value: "book"
+          - label: "学位论文"
+            value: "thesis"
+      - label: "发表期刊/会议"
+        name: "publication"
+        widget: "string"
+        hint: "如「IEEE VIS 2026」或「计算机学报」"
+      - label: "摘要"
+        name: "abstract"
+        widget: "text"
+      - label: "标签"
+        name: "tags"
+        widget: "list"
+        default: []
+      - label: "精选"
+        name: "featured"
+        widget: "boolean"
+        default: false
+      - label: "外部链接"
+        name: "links"
+        widget: "list"
+        label_singular: "链接"
+        required: false
+        summary: "{{name}}: {{url}}"
+        fields:
+          - label: "名称"
+            name: "name"
+            widget: "string"
+          - label: "地址"
+            name: "url"
+            widget: "string"
+      - label: "正文"
+        name: "body"
+        widget: "markdown"
+        required: false
+        hint: "论文附加说明（可选）"
+
+  # ===========================================================================
+  # 5. 独立页面 (Research / Resources / About)
+  # ===========================================================================
+  - name: "pages"
+    label: "独立页面"
+    label_singular: "页面"
+    editor:
+      preview: false
+    files:
+      - label: "研究方向"
+        name: "research"
+        file: "content/research/_index.md"
+        fields:
+          - label: "页面标题"
+            name: "title"
+            widget: "string"
+            default: "Research"
+          - label: "副标题"
+            name: "subtitle"
+            widget: "string"
+            required: false
+          - label: "摘要"
+            name: "summary"
+            widget: "text"
+            required: false
+          - label: "页面内容"
+            name: "body"
+            widget: "markdown"
+            required: false
+      - label: "资源下载"
+        name: "resources"
+        file: "content/resources/_index.md"
+        fields:
+          - label: "页面标题"
+            name: "title"
+            widget: "string"
+            default: "Resources"
+          - label: "副标题"
+            name: "subtitle"
+            widget: "string"
+            required: false
+          - label: "摘要"
+            name: "summary"
+            widget: "text"
+            required: false
+          - label: "页面内容"
+            name: "body"
+            widget: "markdown"
+            required: false
+      - label: "关于我们"
+        name: "about"
+        file: "content/about/_index.md"
+        fields:
+          - label: "页面标题"
+            name: "title"
+            widget: "string"
+            default: "About"
+          - label: "副标题"
+            name: "subtitle"
+            widget: "string"
+            required: false
+          - label: "摘要"
+            name: "summary"
+            widget: "text"
+            required: false
+          - label: "页面内容"
+            name: "body"
+            widget: "markdown"
+            required: false
+
+  # ===========================================================================
+  # 6. 首页设置 (Homepage) — 仅 title 可编辑
+  #    注意：首页 sections (Hero/Features/Collections) 结构复杂，需通过代码编辑
+  #    CMS 仅提供页面标题修改，编辑时不会影响其他已有配置
+  # ===========================================================================
+  - name: "homepage"
+    label: "首页设置"
+    editor:
+      preview: false
+    files:
+      - label: "首页配置"
+        name: "home"
+        file: "content/_index.md"
+        fields:
+          - label: "页面标题"
+            name: "title"
+            widget: "string"
+            default: "VISTA Research Group"
+            hint: "⚠️ 首页的 Hero、区块内容等复杂配置目前需在代码中编辑 content/_index.md 的 sections 部分"
