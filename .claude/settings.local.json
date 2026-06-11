@@ -44,7 +44,9 @@
       "Bash(grep -oE ':style=.{0,30}|max-width:.*none' \"E:/Code_WorkSpace/VISTA_Website/public/publication/dde-net-dynamic-density-driven-estimation-for-arbitrary-oriented-object-detection/index.html\")",
       "Bash(grep -oE '.{0,40}:style=widthStyle.{0,200}' \"E:/Code_WorkSpace/VISTA_Website/public/publication/dde-net-dynamic-density-driven-estimation-for-arbitrary-oriented-object-detection/index.html\")",
       "Bash(grep -oE 'article-container|featured-image-wrapper|max-w-6xl|mt-8.{0,30}|x-data.*pub-single' \"E:/Code_WorkSpace/VISTA_Website/public/publication/dde-net-dynamic-density-driven-estimation-for-arbitrary-oriented-object-detection/index.html\")",
-      "Bash(hugo --cleanDestinationDir)"
+      "Bash(hugo --cleanDestinationDir)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Code_WorkSpace\\\\VISTA_Website\" -Depth 2)",
+      "Bash(Select-Object -First 80 Name, PSIsContainer, FullName)"
     ]
   }
 }

@@ -2,7 +2,7 @@
 # Netlify Configuration — VISTA Research Group
 # =============================================================================
 [build]
-  command = "hugo --minify --gc --cleanDestinationDir && npx pagefind --site public --force-language zh"
+  command = "hugo --minify --gc --cleanDestinationDir --baseURL https://vista-research-group.netlify.app/ && npx pagefind --site public --force-language zh"
   publish = "public"
 
 [build.environment]
@@ -12,18 +12,13 @@
   GO_VERSION = "1.22"
 
 [context.production]
-  command = "hugo --minify --gc --cleanDestinationDir --enableGitInfo && npx pagefind --site public --force-language zh"
+  command = "hugo --minify --gc --cleanDestinationDir --enableGitInfo --baseURL https://vista-research-group.netlify.app/ && npx pagefind --site public --force-language zh"
 
 [context.deploy-preview]
-  command = "hugo --minify --cleanDestinationDir --buildFuture --buildDrafts && npx pagefind --site public --force-language zh"
+  command = "hugo --minify --cleanDestinationDir --buildFuture --buildDrafts --baseURL https://vista-research-group.netlify.app/ && npx pagefind --site public --force-language zh"
 
 [context.branch-deploy]
-  command = "hugo --minify --cleanDestinationDir --buildFuture --buildDrafts && npx pagefind --site public --force-language zh"
-
-[[redirects]]
-  from = "/admin/*"
-  to = "https://vista-research-group.netlify.app/admin/:splat"
-  status = 200
+  command = "hugo --minify --cleanDestinationDir --buildFuture --buildDrafts --baseURL https://vista-research-group.netlify.app/ && npx pagefind --site public --force-language zh"
 
 [[headers]]
   for = "/*"

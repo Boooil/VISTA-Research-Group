@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>VISTA CMS — 内容管理后台</title>
+
+  <style>
+    /* 自定义登录页面品牌样式 */
+    :root {
+      --vista-blue: #1e3a8a;
+      --vista-dark: #0f172a;
+    }
+    /* Decap CMS 加载前的骨架屏 */
+    [data-netlify-identity-menu] {
+      display: none;
+    }
+    body:not(.netlify-identity-widget-loaded)::before {
+      content: "正在加载内容管理系统...";
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 1.2rem;
+      color: #64748b;
+      background: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <!-- Decap CMS 主脚本 -->
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+  <!-- Netlify Identity Widget（认证登录） -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+  <script>
+    // 处理 Netlify Identity 登录回调重定向
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", function (user) {
+        if (!user) {
+          window.netlifyIdentity.on("login", function () {
+            document.location.href = "/admin/";
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
