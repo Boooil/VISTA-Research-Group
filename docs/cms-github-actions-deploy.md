@@ -92,6 +92,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
@@ -99,7 +100,15 @@ jobs:
           hugo-version: '0.148.2'
           extended: true
 
-      - name: Install npm dependencies
+      - name: Cache Hugo modules
+        uses: actions/cache@v4
+        with:
+          path: /tmp/hugo_cache_runner
+          key: hugo-${{ runner.os }}-${{ hashFiles('config/_default/hugo.yaml') }}
+          restore-keys: |
+            hugo-${{ runner.os }}-
+
+      - name: Install dependencies
         run: npm install
 
       - name: Build
