@@ -19,3 +19,5 @@ content_type: post
 这是一个测试
 
 测试CMS+Github Actions零积分自动部署方案
+
+测试Github Action 加入缓存后的构建时长
