@@ -8,7 +8,7 @@ backend:
   name: github
   repo: Boooil/VISTA-Research-Group
   branch: main
-  base_url: https://api.decapcms.org
+  base_url: https://vista-cms-oauth.boil99.workers.dev
 
 # --- Media & Uploads ---
 # 上传的图片存入 static/uploads/，Hugo 构建后映射为 /uploads/
