@@ -3,8 +3,15 @@
  * Phase 4: 编辑器内实时预览，无需 JSX 构建，直接使用 React.createElement
  */
 
-(function () {
+(function init() {
   "use strict";
+
+  // Decap CMS 3.x 可能不全局暴露 React，从 window 获取或等待
+  if (typeof React === 'undefined') { React = window.React || (window.CMS && window.CMS.React); }
+  if (typeof React === 'undefined' || typeof CMS === 'undefined') {
+    setTimeout(init, 200);
+    return;
+  }
 
   var R = React.createElement;
   var F = React.Fragment;
