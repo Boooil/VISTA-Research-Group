@@ -8,6 +8,14 @@
 const DEFAULT_REDIRECT = 'https://vista-research-group.pages.dev/admin/callback.html';
 const DEFAULT_SITE = 'https://vista-research-group.pages.dev';
 
+function corsHeaders(origin) {
+  return {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
 async function handleRequest(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -15,6 +23,11 @@ async function handleRequest(request, env) {
   const CLIENT_SECRET = env.CLIENT_SECRET;
   const REDIRECT_URI = env.REDIRECT_URI || DEFAULT_REDIRECT;
   const SITE_URL = env.SITE_URL || DEFAULT_SITE;
+
+  // CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(SITE_URL) });
+  }
 
   // GET /auth — 跳转 GitHub 授权
   if (path === '/auth') {
@@ -33,7 +46,7 @@ async function handleRequest(request, env) {
       const code = body.code;
       if (!code) {
         return new Response(JSON.stringify({ error: 'missing code' }), {
-          status: 400, headers: { 'Content-Type': 'application/json' },
+          status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(SITE_URL) },
         });
       }
 
@@ -52,16 +65,16 @@ async function handleRequest(request, env) {
 
       if (data.error) {
         return new Response(JSON.stringify({ error: data.error }), {
-          status: 400, headers: { 'Content-Type': 'application/json' },
+          status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(SITE_URL) },
         });
       }
 
       return new Response(JSON.stringify({ token: data.access_token }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(SITE_URL) },
       });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), {
-        status: 500, headers: { 'Content-Type': 'application/json' },
+        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders(SITE_URL) },
       });
     }
   }
