@@ -8,27 +8,15 @@
 
 </head>
 <body>
+  <!-- React（Decap CMS 预览模板依赖） -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
   <!-- Decap CMS 主脚本 -->
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
   <!-- 预览模板 & 样式 -->
   <link rel="stylesheet" href="/admin/preview-styles.css" />
   <script src="/admin/preview-templates.js"></script>
-
-  <!-- Netlify Identity Widget（认证登录） -->
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-
-  <script>
-    // 处理 Netlify Identity 登录回调重定向
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", function (user) {
-        if (!user) {
-          window.netlifyIdentity.on("login", function () {
-            document.location.href = "/admin/";
-          });
-        }
-      });
-    }
-  </script>
 </body>
 </html>
