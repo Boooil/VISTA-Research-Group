@@ -3,7 +3,12 @@
  * Phase 4: 编辑器内实时预览，无需 JSX 构建，直接使用 React.createElement
  */
 
-(function () {
+// 等待 CMS 内置 React 就绪（CMS 加载完后会暴露到 window.React）
+(function waitForReact() {
+  if (typeof React === 'undefined' || typeof CMS === 'undefined') {
+    setTimeout(waitForReact, 100);
+    return;
+  }
   "use strict";
 
   var R = React.createElement;
