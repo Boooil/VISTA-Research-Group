@@ -108,22 +108,20 @@ jobs:
           restore-keys: |
             hugo-${{ runner.os }}-
 
+      - name: Cache Netlify CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: npx-netlify-${{ runner.os }}
+
       - name: Install dependencies
         run: npm install
-
-      - name: Build
-        run: |
-          hugo --minify --gc --cleanDestinationDir --enableGitInfo \
-            --baseURL https://vista-research-group.netlify.app/
-          npx pagefind --site public --force-language zh
 
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: |
-          npm install -g netlify-cli
-          netlify deploy --prod --dir=public --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+        run: npx --yes netlify-cli deploy --prod --dir=public --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
 ```
 
 > 提交此文件后，GitHub Actions 即开始工作。
