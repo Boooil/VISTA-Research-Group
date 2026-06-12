@@ -100,7 +100,7 @@ jobs:
           extended: true
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: |
