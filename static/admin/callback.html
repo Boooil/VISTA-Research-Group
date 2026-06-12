@@ -11,7 +11,6 @@
         return;
       }
 
-      // 调 Worker API 用 code 换 token
       fetch('https://vista-cms-oauth.boil99.workers.dev/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -20,13 +19,28 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.error) {
-          document.getElementById('status').textContent = '授权失败：' + JSON.stringify(data.error);
+          document.getElementById('status').textContent = '错误：' + JSON.stringify(data.error);
           return;
         }
-        // 同源 postMessage，CMS 不会被跨域限制拦截
-        window.opener.postMessage({ token: data.token, provider: 'github' }, window.location.origin);
+
+        // 策略1: postMessage（同源，CMS 可能监听）
+        try { window.opener.postMessage({ token: data.token, provider: 'github' }, '*'); } catch(e) {}
+
+        // 策略2: 将 token 写入 opener 的 localStorage
+        try { window.opener.localStorage.setItem('decap-cms-github-token', data.token); } catch(e) {}
+
+        // 策略3: 重定向 opener 到 CMS admin 页面，token 放 hash
+        try {
+          window.opener.location.href = 'https://vista-research-group.pages.dev/admin/#access_token=' + data.token + '&provider=github';
+        } catch(e) {}
+
+        // 如果所有策略都失败（如 opener 为 null），在当前窗口打开 admin
+        if (!window.opener) {
+          window.location.href = 'https://vista-research-group.pages.dev/admin/';
+        }
+
         document.getElementById('status').textContent = '授权成功，窗口即将关闭...';
-        setTimeout(function() { window.close(); }, 500);
+        setTimeout(function() { window.close(); }, 1000);
       })
       .catch(function(err) {
         document.getElementById('status').textContent = '网络错误：' + err.message;
