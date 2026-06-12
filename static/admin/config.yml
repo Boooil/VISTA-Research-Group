@@ -3,11 +3,12 @@
 # Phase 1: Backend + Media setup (collections to be added in Phase 2)
 # =============================================================================
 
-# --- Backend (Netlify Git Gateway) ---
+# --- Backend (GitHub OAuth) ---
 backend:
-  name: git-gateway
-  branch: main
+  name: github
   repo: Boooil/VISTA-Research-Group
+  branch: main
+  base_url: https://api.decapcms.org
 
 # --- Media & Uploads ---
 # 上传的图片存入 static/uploads/，Hugo 构建后映射为 /uploads/
@@ -18,8 +19,8 @@ public_folder: "/uploads"
 locale: "zh_Hans"
 
 # --- Site URL (用于预览链接) ---
-site_url: "https://vista-research-group.netlify.app/"
-display_url: "https://vista-research-group.netlify.app/"
+site_url: "https://vista-research-group.pages.dev/"
+display_url: "https://vista-research-group.pages.dev/"
 
 # --- Slug 配置 ---
 slug:
