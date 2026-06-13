@@ -43,7 +43,6 @@ collections:
     create: true
     slug: "{{pinyin}}"
     identifier_field: "pinyin"
-    format: "yaml-quoted-md"
     editor:
       preview: true
     filter:
