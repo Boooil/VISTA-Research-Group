@@ -4,6 +4,7 @@ date: 2026-06-11
 authors:
   - WangBoyu
   - MengQingxin
+  - ZhangShuo
 summary: 这是一个测试。
 tags:
   - Test
@@ -29,3 +30,5 @@ content_type: post
 测试Github Action 加入缓存后的构建时长4
 
 测试CloudFlare托管网站后后台编辑功能
+
+增加作者测试
