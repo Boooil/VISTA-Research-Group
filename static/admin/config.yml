@@ -39,10 +39,11 @@ collections:
     label: "团队成员"
     label_singular: "团队成员"
     folder: "content/authors"
-    path: "{{slug}}/_index"
+    path: "{{pinyin}}/_index"
     create: true
-    slug: "{{slug}}"
+    slug: "{{pinyin}}"
     identifier_field: "pinyin"
+    format: "yaml-quoted-md"
     editor:
       preview: true
     filter:
@@ -53,11 +54,11 @@ collections:
         name: "title"
         widget: "string"
         hint: "中文姓名，如「王博宇」"
-      - label: "拼音排序键"
+      - label: "拼音标识"
         name: "pinyin"
         widget: "string"
-        hint: "全小写无空格拼音，如 wangboyu。用于团队成员列表排序"
-        pattern: ["^[a-z]+$", "必须为全小写字母，无空格"]
+        hint: "首字母大写拼音：姓首字母大写 + 名首字首字母大写，如 WangBoyu。用于文件夹命名和排序"
+        pattern: ["^[a-zA-Z]+$", "必须为字母，无空格"]
       - label: "角色/身份"
         name: "role"
         widget: "select"
