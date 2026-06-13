@@ -1,7 +1,7 @@
 ---
 title: "史燕燕"
 content_type: author
-pinyin: "shiyanyan"
+pinyin: "ShiYanyan"
 role: "研究员"
 avatar_filename: avatar.jpg
 bio: "高级工程师"

@@ -1,7 +1,7 @@
 ---
 title: "高晟轩"
 content_type: author
-pinyin: "gaoshengxuan"
+pinyin: "GaoShengxuan"
 role: "在读硕士"
 avatar_filename: avatar.jpg
 bio: ""

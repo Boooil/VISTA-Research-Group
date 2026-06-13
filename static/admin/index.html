@@ -14,6 +14,51 @@
   <!-- js-yaml: 用于自定义 YAML 格式，强制双引号以保持 frontmatter 风格一致 -->
   <script src="https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 
+  <!-- 提前注册自定义 YAML 格式（必须在 CMS 加载 collections 之前完成） -->
+  <script>
+    (function registerQuotedFormat() {
+      if (typeof CMS === 'undefined' || typeof jsyaml === 'undefined') {
+        setTimeout(registerQuotedFormat, 20);
+        return;
+      }
+      CMS.registerFormat('yaml-quoted-md', {
+        extension: 'md',
+        fromFile: function(content) {
+          var str = typeof content === 'string' ? content : '';
+          var match = str.match(/^---[\t ]*\r?\n([\s\S]*?)\r?\n---[\t ]*\r?\n?([\s\S]*)?$/);
+          if (!match) return { body: str };
+          var fm;
+          try { fm = jsyaml.load(match[1]); } catch(e) { fm = {}; }
+          if (fm === null || typeof fm !== 'object') fm = {};
+          fm.body = match[2] || '';
+          return fm;
+        },
+        toFile: function(data, sortedKeys) {
+          var body = (data && data.body) || '';
+          var obj = {};
+          if (data) {
+            Object.keys(data).forEach(function(k) { if (k !== 'body') obj[k] = data[k]; });
+          }
+          var ordered = {};
+          if (sortedKeys && sortedKeys.length) {
+            sortedKeys.forEach(function(k) {
+              if (k !== 'body' && obj[k] !== undefined) { ordered[k] = obj[k]; delete obj[k]; }
+            });
+          }
+          Object.keys(obj).forEach(function(k) {
+            if (ordered[k] === undefined) ordered[k] = obj[k];
+          });
+          var yamlStr = jsyaml.dump(ordered, {
+            quotingType: '"', noRefs: true, sortKeys: false, lineWidth: -1, noCompatMode: true, flowLevel: -1
+          }).trimEnd();
+          var result = '---\n' + yamlStr + '\n---\n';
+          if (body) result += '\n' + body;
+          return result;
+        }
+      });
+    })();
+  </script>
+
   <!-- 预览模板 & 样式 -->
   <link rel="stylesheet" href="/admin/preview-styles.css" />
   <script src="/admin/preview-templates.js"></script>
