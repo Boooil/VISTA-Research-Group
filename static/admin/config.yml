@@ -168,14 +168,9 @@ collections:
         default: "{{now}}"
       - label: "作者"
         name: "authors"
-        widget: "relation"
-        collection: "authors"
-        value_field: "pinyin"
-        search_fields: ["title"]
-        display_fields: ["title"]
-        multiple: true
+        widget: "author-list"
         min: 1
-        hint: "选择文章作者（需先在「团队成员」中创建）"
+        hint: "可选已有团队成员（输入拼音搜索），也可自由输入外部作者姓名"
       - label: "摘要"
         name: "summary"
         widget: "text"
@@ -325,14 +320,9 @@ collections:
         widget: "string"
       - label: "作者"
         name: "authors"
-        widget: "relation"
-        collection: "authors"
-        value_field: "pinyin"
-        search_fields: ["title"]
-        display_fields: ["title"]
-        multiple: true
+        widget: "author-list"
         min: 1
-        hint: "选择论文作者"
+        hint: "可选团队成员（输入拼音搜索），也可自由输入外部作者姓名（如论文合作者）"
       - label: "发表日期"
         name: "date"
         widget: "datetime"

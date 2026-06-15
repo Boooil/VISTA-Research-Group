@@ -435,3 +435,190 @@
 .preview-social-item:hover {
   background: #e2e8f0 !important;
 }
+
+/* =========================================================================
+   Author-List Custom Widget — 自定义作者选择器
+   ========================================================================= */
+.author-list-widget {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+}
+
+/* --- Chips 容器 --- */
+.author-list-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+/* --- 单个 Chip --- */
+.author-list-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+
+.author-list-chip:hover {
+  background: #c7d2fe;
+}
+
+.author-list-chip-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author-list-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: rgba(55, 48, 163, 0.15);
+  color: #3730a3;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.author-list-chip-remove:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* --- 输入包裹 --- */
+.author-list-input-wrapper {
+  position: relative;
+}
+
+/* --- 输入框 --- */
+.author-list-input {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.author-list-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.author-list-input::placeholder {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* --- 下拉建议 --- */
+.author-list-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.author-list-suggestion {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.author-list-suggestion:hover,
+.author-list-suggestion--active {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.author-list-suggestion--active {
+  background: #e0e7ff;
+}
+
+.author-list-match {
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+/* --- 底部状态栏 --- */
+.author-list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  min-height: 20px;
+}
+
+.author-list-status {
+  font-size: 12px;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.author-list-status--warning {
+  color: #d97706;
+}
+
+.author-list-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: author-list-spin 0.6s linear infinite;
+}
+
+@keyframes author-list-spin {
+  to { transform: rotate(360deg); }
+}
+
+.author-list-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* --- 提示文本 --- */
+.author-list-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
