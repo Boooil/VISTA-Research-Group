@@ -5,6 +5,8 @@ authors:
   - WangBoyu
   - MengQingxin
   - ZhangShuo
+  - 陈方悦
+  - lintao
 summary: 这是一个测试。
 tags:
   - Test
