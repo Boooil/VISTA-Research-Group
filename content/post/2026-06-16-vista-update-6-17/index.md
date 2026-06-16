@@ -1,6 +1,6 @@
 ---
-title: VISTA网站更新日志2
-slug: 2026-06-16-vista-update-6-17
+title: VISTA网站更新日志
+slug: 2026-06-17-vista-update
 date: 2026-06-17
 authors:
   - WangBoyu
