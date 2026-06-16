@@ -851,7 +851,9 @@ function buildAuthorContent({
     html += `<p class="text-gray-500 dark:text-gray-400 mb-3">`;
     if (organizations.length > 0) {
       const org = organizations[0];
-      html += `<span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">${escapeHTML(org.name || org)}</span>`;
+      const isObj = typeof org === 'object' && org !== null;
+      const orgName = isObj ? (org.name || '') : String(org).replace(/^name:\s*/, '');
+      html += `<span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">${escapeHTML(orgName)}</span>`;
     }
     if (organizations.length > 0 && email) {
       html += `<span class="mx-2 text-gray-300 dark:text-gray-600">|</span>`;
@@ -885,9 +887,11 @@ function buildAuthorContent({
   if (social.length > 0) {
     html += `<div class="flex gap-4 mt-4 justify-center sm:justify-start">`;
     for (const s of social) {
-      const link = s.url || s.link || '#';
-      const iconName = s.icon || 'link';
-      const label = s.label || iconName;
+      // 防御: frontmatter parser 可能返回 string (无法解析嵌套结构) 或 object
+      const isObj = typeof s === 'object' && s !== null;
+      const link = isObj ? (s.url || s.link || '#') : '#';
+      const iconName = isObj ? (s.icon || 'link') : 'link';
+      const label = isObj ? (s.label || iconName) : iconName;
       const iconHTML = getSocialIcon(iconName);
       html += `<a href="${escapeHTML(link)}" target="_blank" rel="noopener" aria-label="${escapeHTML(iconName)}" title="${escapeHTML(label)}" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors text-xl">${iconHTML}</a>`;
     }
@@ -946,6 +950,7 @@ function getSocialIcon(name) {
 // ============================================================================
 
 function escapeHTML(str) {
-  if (!str) return '';
+  if (str == null || str === '') return '';
+  if (typeof str !== 'string') str = String(str);
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
