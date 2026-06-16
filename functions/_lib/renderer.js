@@ -132,7 +132,7 @@ function renderFeaturedImage(imageUrl, imageMeta) {
 /**
  * 渲染 publication 页面
  */
-export async function renderPublication({ slug, env, log }) {
+export async function renderPublication({ slug, folder, env, log }) {
   const {
     GITHUB_OWNER = 'Boooil',
     GITHUB_REPO = 'VISTA-Research-Group',
@@ -140,7 +140,7 @@ export async function renderPublication({ slug, env, log }) {
     SITE_BASE_URL = 'https://vista-research-group.pages.dev',
   } = env;
 
-  const contentDir = `content/publication/${slug}/`;
+  const contentDir = `content/publication/${folder || slug}/`;
 
   // 1. 获取 Markdown
   const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
@@ -243,7 +243,7 @@ export async function renderPublication({ slug, env, log }) {
 /**
  * 渲染 post 页面
  */
-export async function renderPost({ slug, env, log }) {
+export async function renderPost({ slug, folder, env, log }) {
   const {
     GITHUB_OWNER = 'Boooil',
     GITHUB_REPO = 'VISTA-Research-Group',
@@ -251,7 +251,7 @@ export async function renderPost({ slug, env, log }) {
     SITE_BASE_URL = 'https://vista-research-group.pages.dev',
   } = env;
 
-  const contentDir = `content/post/${slug}/`;
+  const contentDir = `content/post/${folder || slug}/`;
 
   // 1. 获取 Markdown
   const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
@@ -353,7 +353,7 @@ export async function renderPost({ slug, env, log }) {
 /**
  * 渲染 project 页面
  */
-export async function renderProject({ slug, env, log }) {
+export async function renderProject({ slug, folder, env, log }) {
   const {
     GITHUB_OWNER = 'Boooil',
     GITHUB_REPO = 'VISTA-Research-Group',
@@ -361,7 +361,7 @@ export async function renderProject({ slug, env, log }) {
     SITE_BASE_URL = 'https://vista-research-group.pages.dev',
   } = env;
 
-  const contentDir = `content/project/${slug}/`;
+  const contentDir = `content/project/${folder || slug}/`;
 
   // 1. 获取 Markdown
   const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
@@ -462,7 +462,7 @@ export async function renderProject({ slug, env, log }) {
 /**
  * 渲染 author 个人页面
  */
-export async function renderAuthor({ slug, env, log }) {
+export async function renderAuthor({ slug, folder, env, log }) {
   const {
     GITHUB_OWNER = 'Boooil',
     GITHUB_REPO = 'VISTA-Research-Group',
@@ -470,7 +470,7 @@ export async function renderAuthor({ slug, env, log }) {
     SITE_BASE_URL = 'https://vista-research-group.pages.dev',
   } = env;
 
-  const contentDir = `content/authors/${slug}/`;
+  const contentDir = `content/authors/${folder || slug}/`;
 
   // 1. 获取 _index.md (注意: author 使用 _index.md)
   const { mdText, status } = await fetchMarkdown(`${contentDir}_index.md`, env);
