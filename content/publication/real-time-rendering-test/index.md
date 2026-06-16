@@ -7,7 +7,7 @@ date: 2026-06-17
 publication_types:
   - paper-conference
 publication: xx
-abstract: xx
+abstract: 这是publication的实时渲染测试的修改测试
 tags: []
 featured: false
 content_type: publication
