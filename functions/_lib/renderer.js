@@ -1,7 +1,9 @@
 /**
- * Publication 页面渲染器
+ * 页面渲染器 — 支持 Post / Publication / Project / Author 四种类型
  *
- * 负责:
+ * Phase 2: 完整覆盖四种详情页类型，图片路径转换，publication_types 中文化
+ *
+ * 职责:
  * 1. 从 GitHub Raw API 获取 Markdown 源文件
  * 2. 解析 frontmatter
  * 3. Markdown → HTML (marked)
@@ -11,8 +13,8 @@
 import { marked } from 'marked';
 import { parseMarkdown } from './frontmatter.js';
 import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS } from './authors.js';
-import { formatDate, extractYear, calcReadingTime, toISODate } from './utils.js';
-import { renderPublicationShell } from './shell.js';
+import { formatDate, calcReadingTime, toISODate } from './utils.js';
+import { renderPageShell, renderAuthorShell } from './shell.js';
 
 // 配置 marked
 marked.use({
@@ -20,9 +22,45 @@ marked.use({
   breaks: false,
 });
 
+// ============================================================================
+// 公共辅助函数
+// ============================================================================
+
+/**
+ * 从 GitHub Raw API 获取 Markdown 源内容
+ * @returns {Promise<{mdText: string|null, status: number}>}
+ */
+async function fetchMarkdown(githubPath, env) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+  } = env;
+
+  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${githubPath}`;
+
+  try {
+    const res = await fetch(rawUrl, {
+      cf: { cacheTtl: 30 },
+      headers: { 'User-Agent': 'VISTA-Edge-Renderer/0.2' },
+    });
+
+    if (!res.ok) {
+      return { mdText: null, status: res.status };
+    }
+
+    const mdText = await res.text();
+    return { mdText, status: 200 };
+  } catch (err) {
+    return { mdText: null, status: 502 };
+  }
+}
+
 /**
  * 将 Markdown 正文中的相对图片路径转为 GitHub Raw 绝对路径
- * 修复: publication 内容中的图片 404 问题
+ * 处理 ![alt](./img.png) 和 ![](relative/path.png) 格式
+ *
+ * Phase 2.4: 图片路径转换
  */
 function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
   if (!markdown) return '';
@@ -32,7 +70,9 @@ function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
     if (/^(https?:)?\/\//.test(src) || src.startsWith('/')) {
       return match;
     }
-    // 解析相对路径
+
+    // 解析相对路径 — 基于当前页面所在目录
+    // ./subfolder/img.png → content/type/slug/subfolder/img.png
     const resolved = src.replace(/^\.\//, '');
     const absoluteUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${githubContentDir}${resolved}`;
     return `![${alt}](${absoluteUrl})`;
@@ -40,152 +80,12 @@ function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
 }
 
 /**
- * 渲染 publication 页面
- * @param {object} params
- * @param {string} params.slug - publication slug
- * @param {object} params.env - Worker env (KV bindings, vars)
- * @param {object} params.log - logger
- * @returns {Promise<{html: string, status: number, cacheKey: string}>}
+ * 渲染链接按钮 (通用)
  */
-export async function renderPublication({ slug, env, log }) {
-  const {
-    GITHUB_OWNER = 'Boooil',
-    GITHUB_REPO = 'VISTA-Research-Group',
-    GITHUB_BRANCH = 'main',
-    SITE_BASE_URL = 'https://vista-research-group.pages.dev',
-  } = env;
-
-  // 1. 构建 GitHub Raw URL
-  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/content/publication/${slug}/index.md`;
-  log.debug('Fetching markdown', { rawUrl });
-
-  // 2. 获取 Markdown 内容
-  let mdText;
-  try {
-    const res = await fetch(rawUrl, {
-      cf: { cacheTtl: 30 },
-      headers: { 'User-Agent': 'VISTA-Edge-Renderer/0.1' },
-    });
-
-    if (!res.ok) {
-      log.warn('GitHub Raw returned non-200', { status: res.status, slug });
-      return { html: null, status: res.status, cacheKey: null };
-    }
-
-    mdText = await res.text();
-  } catch (err) {
-    log.error('Failed to fetch from GitHub Raw', err.message);
-    return { html: null, status: 502, cacheKey: null };
-  }
-
-  // 3. 解析 frontmatter
-  const { frontmatter, body } = parseMarkdown(mdText);
-  log.debug('Parsed frontmatter', { title: frontmatter.title, authors: frontmatter.authors?.length });
-
-  if (!frontmatter.title) {
-    log.warn('No title in frontmatter', { slug });
-    return { html: null, status: 500, cacheKey: null };
-  }
-
-  // 4. 转换相对图片路径 → GitHub Raw 绝对 URL
-  const processedBody = convertImagePaths(body, githubPath, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
-
-  // 5. Markdown → HTML
-  let bodyHTML = '';
-  if (processedBody) {
-    try {
-      bodyHTML = marked.parse(processedBody);
-    } catch (err) {
-      log.error('Markdown parsing failed', err.message);
-      bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
-    }
-  }
-
-  // 5. 解析作者
-  const githubPath = `content/publication/${slug}/`;
-  const { authors } = await resolveAuthors(
-    frontmatter.authors || [],
-    frontmatter.author_notes || null,
-    env.AUTHORS,
-    githubPath
-  );
-
-  // 6. 处理 metadata
-  const pubType = frontmatter.publication_types?.[0] || '';
-  const pubTypeLabel = PUB_TYPE_LABELS[pubType] || pubType;
-
-  const dateDisplay = formatDate(frontmatter.date);
-  const readingTime = calcReadingTime(body);
-  const publicationVenue = frontmatter.publication || '';
-  const abstract = frontmatter.abstract || frontmatter.summary || '';
-  const links = frontmatter.links || [];
-
-  // 封面图
-  const featuredImage = frontmatter.image?.filename || '';
-  const featuredImageUrl = featuredImage
-    ? `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/content/publication/${slug}/${featuredImage}`
-    : '';
-
-  // 7. 组装 content HTML
-  const authorsHTML = renderAuthorsHTML(authors);
-  const linksHTML = renderLinksHTML(links, slug, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
-  const featuredHTML = renderFeaturedImage(featuredImageUrl, frontmatter.image);
-
-  const metadataHTML = renderPublicationMetadata({
-    abstract,
-    pubTypeLabel,
-    pubType,
-    publicationVenue,
-  });
-
-  const proseHTML = bodyHTML
-    ? `<div class="prose prose-slate lg:prose-xl dark:prose-invert max-w-none">${bodyHTML}</div>`
-    : '';
-
-  // 8. 构建完整 <main> 内容
-  const mainContent = buildMainContent({
-    title: frontmatter.title,
-    dateDisplay,
-    authorsHTML,
-    readingTime,
-    linksHTML,
-    featuredHTML,
-    metadataHTML,
-    proseHTML,
-    lastEdited: frontmatter.date,
-    hasAuthors: authors.length > 0,
-    hasDate: !!frontmatter.date,
-    hasReadingTime: frontmatter.reading_time !== false,
-  });
-
-  // 9. 构建完整页面
-  const canonicalUrl = `${SITE_BASE_URL}/publication/${slug}/`;
-  const publishedISO = toISODate(frontmatter.date);
-  const metaDescription = (abstract || frontmatter.title || '').substring(0, 300);
-
-  const now = new Date();
-  const currentYear = now.getFullYear().toString();
-
-  const html = renderPublicationShell({
-    content: mainContent,
-    canonicalUrl,
-    title: frontmatter.title,
-    description: metaDescription,
-    publishedTime: publishedISO,
-    modifiedTime: publishedISO,
-    ogImage: featuredImageUrl || '',
-    currentYear,
-  });
-
-  return { html, status: 200, cacheKey: canonicalUrl };
-}
-
-/**
- * 渲染链接按钮
- */
-function renderLinksHTML(links, slug, owner, repo, branch) {
+function renderLinksHTML(links, slug, type, owner, repo, branch) {
   const buttons = [];
 
+  // 来自 frontmatter 的显式链接
   if (Array.isArray(links)) {
     for (const link of links) {
       if (link.url && link.name) {
@@ -194,8 +94,11 @@ function renderLinksHTML(links, slug, owner, repo, branch) {
     }
   }
 
-  const citeBibUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/content/publication/${slug}/cite.bib`;
-  buttons.push(linkButton('Cite', `/publication/${slug}/cite.bib`, 'cite'));
+  // Cite.bib 链接 (仅 publication)
+  if (type === 'publication' && slug) {
+    const citeBibUrl = `/publication/${slug}/cite.bib`;
+    buttons.push(linkButton('Cite', citeBibUrl, 'cite'));
+  }
 
   if (buttons.length === 0) return '';
 
@@ -222,12 +125,605 @@ function renderFeaturedImage(imageUrl, imageMeta) {
   return `<div class="article-header article-container featured-image-wrapper mt-4 mb-16" style="max-width:100%;max-height:480px"><div style="position:relative"><img src="${imageUrl}" alt="${escapeHTML(alt)}" class="featured-image" fetchpriority="high" style="max-width:100%;height:auto">${caption ? `<span class="article-header-caption">${escapeHTML(caption)}</span>` : ''}</div></div>`;
 }
 
+// ============================================================================
+// 页面渲染入口
+// ============================================================================
+
 /**
- * 渲染 publication metadata 区域
+ * 渲染 publication 页面
  */
-function renderPublicationMetadata({ abstract, pubTypeLabel, pubType, publicationVenue }) {
+export async function renderPublication({ slug, env, log }) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+    SITE_BASE_URL = 'https://vista-research-group.pages.dev',
+  } = env;
+
+  const contentDir = `content/publication/${slug}/`;
+
+  // 1. 获取 Markdown
+  const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
+  if (!mdText) {
+    log.warn('[renderPublication] Failed to fetch or not found', { slug, status });
+    return { html: null, status, cacheKey: null };
+  }
+
+  // 2. 解析 frontmatter + body
+  const { frontmatter, body } = parseMarkdown(mdText);
+  log.debug('[renderPublication] Parsed frontmatter', { title: frontmatter.title });
+
+  if (!frontmatter.title) {
+    log.warn('[renderPublication] No title', { slug });
+    return { html: null, status: 500, cacheKey: null };
+  }
+
+  // 3. 转换正文内相对图片路径
+  const processedBody = convertImagePaths(body, contentDir, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 4. Markdown → HTML
+  let bodyHTML = '';
+  if (processedBody) {
+    try {
+      bodyHTML = marked.parse(processedBody);
+    } catch (err) {
+      log.error('[renderPublication] Markdown parse error', err.message);
+      bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
+    }
+  }
+
+  // 5. 解析作者
+  const { authors } = await resolveAuthors(
+    frontmatter.authors || [],
+    frontmatter.author_notes || null,
+    env.AUTHORS,
+    contentDir
+  );
+  const authorsHTML = renderAuthorsHTML(authors);
+
+  // 6. 元数据
+  const pubType = frontmatter.publication_types?.[0] || '';
+  const pubTypeLabel = PUB_TYPE_LABELS[pubType] || pubType;
+  const dateDisplay = formatDate(frontmatter.date);
+  const readingTime = calcReadingTime(body);
+  const publicationVenue = frontmatter.publication || '';
+  const abstract = frontmatter.abstract || frontmatter.summary || '';
+
+  // 7. 链接按钮
+  const links = frontmatter.links || [];
+  const linksHTML = renderLinksHTML(links, slug, 'publication', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 8. 封面图
+  const featuredImage = frontmatter.image?.filename || '';
+  const featuredImageUrl = featuredImage
+    ? `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${contentDir}${featuredImage}`
+    : '';
+  const featuredHTML = renderFeaturedImage(featuredImageUrl, frontmatter.image);
+
+  // 9. 构建 main 内容 (Publication: 宽度切换 + pub metadata)
+  const mainContent = buildPublicationContent({
+    title: frontmatter.title,
+    dateDisplay,
+    authorsHTML,
+    readingTime,
+    linksHTML,
+    featuredHTML,
+    bodyHTML,
+    abstract,
+    pubTypeLabel,
+    pubType,
+    publicationVenue,
+    lastEdited: frontmatter.date,
+    hasAuthors: authors.length > 0,
+    hasDate: !!frontmatter.date,
+    hasReadingTime: frontmatter.reading_time !== false,
+  });
+
+  // 10. 构建完整页面
+  const canonicalUrl = `${SITE_BASE_URL}/publication/${slug}/`;
+  const publishedISO = toISODate(frontmatter.date);
+  const metaDescription = (abstract || frontmatter.title || '').substring(0, 300);
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+
+  const html = renderPageShell({
+    content: mainContent,
+    canonicalUrl,
+    title: frontmatter.title,
+    description: metaDescription,
+    publishedTime: publishedISO,
+    modifiedTime: publishedISO,
+    ogImage: featuredImageUrl || '',
+    currentYear,
+  });
+
+  return { html, status: 200, cacheKey: canonicalUrl };
+}
+
+/**
+ * 渲染 post 页面
+ */
+export async function renderPost({ slug, env, log }) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+    SITE_BASE_URL = 'https://vista-research-group.pages.dev',
+  } = env;
+
+  const contentDir = `content/post/${slug}/`;
+
+  // 1. 获取 Markdown
+  const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
+  if (!mdText) {
+    log.warn('[renderPost] Failed to fetch or not found', { slug, status });
+    return { html: null, status, cacheKey: null };
+  }
+
+  // 2. 解析 frontmatter + body
+  const { frontmatter, body } = parseMarkdown(mdText);
+  log.debug('[renderPost] Parsed frontmatter', { title: frontmatter.title });
+
+  if (!frontmatter.title) {
+    log.warn('[renderPost] No title', { slug });
+    return { html: null, status: 500, cacheKey: null };
+  }
+
+  // 3. 转换正文内相对图片路径
+  const processedBody = convertImagePaths(body, contentDir, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 4. Markdown → HTML
+  let bodyHTML = '';
+  if (processedBody) {
+    try {
+      bodyHTML = marked.parse(processedBody);
+    } catch (err) {
+      log.error('[renderPost] Markdown parse error', err.message);
+      bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
+    }
+  }
+
+  // 5. 解析作者
+  const { authors } = await resolveAuthors(
+    frontmatter.authors || [],
+    frontmatter.author_notes || null,
+    env.AUTHORS,
+    contentDir
+  );
+  const authorsHTML = renderAuthorsHTML(authors);
+
+  // 6. 元数据
+  const dateDisplay = formatDate(frontmatter.date);
+  const readingTime = calcReadingTime(body);
+
+  // 7. 链接按钮 (Post 无 Cite.bib)
+  const links = frontmatter.links || [];
+  const linksHTML = renderLinksHTML(links, null, 'post', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 8. 封面图
+  const featuredImage = frontmatter.image?.filename || '';
+  const featuredImageUrl = featuredImage
+    ? `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${contentDir}${featuredImage}`
+    : '';
+  const featuredHTML = renderFeaturedImage(featuredImageUrl, frontmatter.image);
+
+  // 9. Tags & Categories
+  const tags = frontmatter.tags || [];
+  const categories = frontmatter.categories || [];
+
+  // 10. 构建 main 内容 (Post: 字体大小切换 + tags)
+  const mainContent = buildPostContent({
+    title: frontmatter.title,
+    dateDisplay,
+    authorsHTML,
+    readingTime,
+    linksHTML,
+    featuredHTML,
+    bodyHTML,
+    tags,
+    categories,
+    summary: frontmatter.summary || '',
+    lastEdited: frontmatter.date,
+    hasAuthors: authors.length > 0,
+    hasDate: !!frontmatter.date,
+    hasReadingTime: frontmatter.reading_time !== false,
+  });
+
+  // 11. 构建完整页面
+  const canonicalUrl = `${SITE_BASE_URL}/post/${slug}/`;
+  const publishedISO = toISODate(frontmatter.date);
+  const metaDescription = (frontmatter.summary || frontmatter.title || '').substring(0, 300);
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+
+  const html = renderPageShell({
+    content: mainContent,
+    canonicalUrl,
+    title: frontmatter.title,
+    description: metaDescription,
+    publishedTime: publishedISO,
+    modifiedTime: publishedISO,
+    ogImage: featuredImageUrl || '',
+    currentYear,
+  });
+
+  return { html, status: 200, cacheKey: canonicalUrl };
+}
+
+/**
+ * 渲染 project 页面
+ */
+export async function renderProject({ slug, env, log }) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+    SITE_BASE_URL = 'https://vista-research-group.pages.dev',
+  } = env;
+
+  const contentDir = `content/project/${slug}/`;
+
+  // 1. 获取 Markdown
+  const { mdText, status } = await fetchMarkdown(`${contentDir}index.md`, env);
+  if (!mdText) {
+    log.warn('[renderProject] Failed to fetch or not found', { slug, status });
+    return { html: null, status, cacheKey: null };
+  }
+
+  // 2. 解析 frontmatter + body
+  const { frontmatter, body } = parseMarkdown(mdText);
+  log.debug('[renderProject] Parsed frontmatter', { title: frontmatter.title });
+
+  if (!frontmatter.title) {
+    log.warn('[renderProject] No title', { slug });
+    return { html: null, status: 500, cacheKey: null };
+  }
+
+  // 3. 转换正文内相对图片路径
+  const processedBody = convertImagePaths(body, contentDir, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 4. Markdown → HTML
+  let bodyHTML = '';
+  if (processedBody) {
+    try {
+      bodyHTML = marked.parse(processedBody);
+    } catch (err) {
+      log.error('[renderProject] Markdown parse error', err.message);
+      bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
+    }
+  }
+
+  // 5. 解析作者
+  const { authors } = await resolveAuthors(
+    frontmatter.authors || [],
+    frontmatter.author_notes || null,
+    env.AUTHORS,
+    contentDir
+  );
+  const authorsHTML = renderAuthorsHTML(authors);
+
+  // 6. 元数据
+  const dateDisplay = formatDate(frontmatter.date);
+  const readingTime = calcReadingTime(body);
+
+  // 7. 链接按钮 (项目的显式链接)
+  const links = frontmatter.links || [];
+  const linksHTML = renderLinksHTML(links, null, 'project', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 8. 封面图
+  const featuredImage = frontmatter.image?.filename || '';
+  const featuredImageUrl = featuredImage
+    ? `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${contentDir}${featuredImage}`
+    : '';
+  const featuredHTML = renderFeaturedImage(featuredImageUrl, frontmatter.image);
+
+  // 9. Tags
+  const tags = frontmatter.tags || [];
+
+  // 10. 构建 main 内容 (Project: 与 Post 类似，字体大小切换)
+  const mainContent = buildPostContent({
+    title: frontmatter.title,
+    dateDisplay,
+    authorsHTML,
+    readingTime,
+    linksHTML,
+    featuredHTML,
+    bodyHTML,
+    tags,
+    categories: [],
+    summary: frontmatter.summary || '',
+    lastEdited: frontmatter.date,
+    hasAuthors: authors.length > 0,
+    hasDate: !!frontmatter.date,
+    hasReadingTime: frontmatter.reading_time !== false,
+  });
+
+  // 11. 构建完整页面
+  const canonicalUrl = `${SITE_BASE_URL}/project/${slug}/`;
+  const publishedISO = toISODate(frontmatter.date);
+  const metaDescription = (frontmatter.summary || frontmatter.title || '').substring(0, 300);
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+
+  const html = renderPageShell({
+    content: mainContent,
+    canonicalUrl,
+    title: frontmatter.title,
+    description: metaDescription,
+    publishedTime: publishedISO,
+    modifiedTime: publishedISO,
+    ogImage: featuredImageUrl || '',
+    currentYear,
+  });
+
+  return { html, status: 200, cacheKey: canonicalUrl };
+}
+
+/**
+ * 渲染 author 个人页面
+ */
+export async function renderAuthor({ slug, env, log }) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+    SITE_BASE_URL = 'https://vista-research-group.pages.dev',
+  } = env;
+
+  const contentDir = `content/authors/${slug}/`;
+
+  // 1. 获取 _index.md (注意: author 使用 _index.md)
+  const { mdText, status } = await fetchMarkdown(`${contentDir}_index.md`, env);
+  if (!mdText) {
+    log.warn('[renderAuthor] Failed to fetch or not found', { slug, status });
+    return { html: null, status, cacheKey: null };
+  }
+
+  // 2. 解析 frontmatter
+  const { frontmatter } = parseMarkdown(mdText);
+  log.debug('[renderAuthor] Parsed frontmatter', { title: frontmatter.title });
+
+  if (!frontmatter.title) {
+    log.warn('[renderAuthor] No title', { slug });
+    return { html: null, status: 500, cacheKey: null };
+  }
+
+  // 3. 头像 URL
+  const avatarFilename = frontmatter.avatar_filename || '';
+  const avatarUrl = avatarFilename
+    ? `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${contentDir}${avatarFilename}`
+    : '';
+
+  // 4. 构建 Author Profile 内容
+  const mainContent = buildAuthorContent({
+    title: frontmatter.title,
+    pinyin: frontmatter.pinyin || slug,
+    role: frontmatter.role || '',
+    bio: frontmatter.bio || '',
+    interests: frontmatter.interests || [],
+    social: frontmatter.social || [],
+    organizations: frontmatter.organizations || [],
+    email: frontmatter.email || '',
+    avatarUrl,
+    education: frontmatter.education || '',
+  });
+
+  // 5. 构建完整页面
+  const canonicalUrl = `${SITE_BASE_URL}/author/${slug}/`;
+  const metaDescription = (frontmatter.bio || frontmatter.title || '').substring(0, 300);
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+
+  const html = renderAuthorShell({
+    content: mainContent,
+    canonicalUrl,
+    title: frontmatter.title,
+    description: metaDescription,
+    publishedTime: '',
+    modifiedTime: '',
+    ogImage: avatarUrl || '',
+    currentYear,
+  });
+
+  return { html, status: 200, cacheKey: canonicalUrl };
+}
+
+// ============================================================================
+// 内容区域构建函数
+// ============================================================================
+
+/**
+ * 构建 Post / Project 的 <main> 内容 (字体大小切换)
+ */
+function buildPostContent({
+  title,
+  dateDisplay,
+  authorsHTML,
+  readingTime,
+  linksHTML,
+  featuredHTML,
+  bodyHTML,
+  tags,
+  categories,
+  summary,
+  lastEdited,
+  hasAuthors,
+  hasDate,
+  hasReadingTime,
+}) {
   let html = '';
 
+  // 标题
+  html += `<h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">${escapeHTML(title)}</h1>`;
+
+  // 摘要
+  if (summary) {
+    html += `<p class="mt-3 text-lg text-gray-600 dark:text-gray-400">${escapeHTML(summary)}</p>`;
+  }
+
+  // 元数据行 (日期 + 作者 + 阅读时间)
+  html += `<div class="mt-4 mb-16">`;
+  html += `<div class="text-gray-500 dark:text-gray-300 text-sm flex items-center flex-wrap gap-y-2">`;
+
+  if (dateDisplay && hasDate) {
+    html += `<span class="mr-1">${dateDisplay}</span>`;
+    if (hasAuthors) html += `<span class="mx-1">·</span>`;
+  }
+
+  html += authorsHTML;
+
+  if (hasReadingTime) {
+    html += `<span class="mx-1">·</span>`;
+    html += `<span class="mx-1">${readingTime} min read</span>`;
+  }
+
+  html += `</div>`;
+
+  // 链接按钮
+  if (linksHTML) {
+    html += `<div class="mt-3">${linksHTML}</div>`;
+  }
+
+  html += `</div>`;
+
+  // 封面图
+  html += featuredHTML;
+
+  // 字体大小切换 + 正文
+  html += `<div
+        x-data="{
+          fontSize: 'standard',
+          init() {
+            const saved = localStorage.getItem('post-font-size');
+            if (saved === 'small' || saved === 'large') {
+              this.fontSize = saved;
+            }
+          },
+          setSize(size) {
+            this.fontSize = size;
+            localStorage.setItem('post-font-size', size);
+          }
+        }">
+        <div class="flex items-center gap-2 justify-end mb-4">
+          <span class="text-xs text-gray-400 dark:text-gray-500 mr-1 hidden sm:inline">字号</span>
+          <button
+            @click="setSize('small')"
+            :class="fontSize === 'small'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 ring-1 ring-primary-300'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+            class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+            title="小号字体"
+          >小</button>
+          <button
+            @click="setSize('standard')"
+            :class="fontSize === 'standard'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 ring-1 ring-primary-300'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+            class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+            title="标准字体"
+          >标准</button>
+          <button
+            @click="setSize('large')"
+            :class="fontSize === 'large'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 ring-1 ring-primary-300'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+            class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+            title="大号字体"
+          >大</button>
+        </div>
+
+        <div class="prose prose-slate lg:prose-xl dark:prose-invert" :style="fontSize === 'small' ? 'font-size: 0.875rem' : fontSize === 'large' ? 'font-size: 1.5rem' : ''">
+          ${bodyHTML}
+        </div>
+      </div>`;
+
+  // Tags & Categories (页脚区域)
+  if (tags.length > 0 || categories.length > 0) {
+    html += `<div class="container mx-auto prose prose-slate lg:prose-xl dark:prose-invert mt-5"><div class="max-w-prose print:hidden">`;
+
+    if (tags.length > 0) {
+      html += `<div class="flex flex-wrap gap-2 mt-4">`;
+      for (const tag of tags) {
+        html += `<a href="/tags/${tag}/" class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 hover:text-primary-700 dark:hover:bg-primary-900 dark:hover:text-primary-300 transition-colors">${escapeHTML(tag)}</a>`;
+      }
+      html += `</div>`;
+    }
+
+    if (categories.length > 0) {
+      html += `<div class="flex flex-wrap gap-2 mt-2">`;
+      for (const cat of categories) {
+        html += `<a href="/categories/${cat}/" class="inline-block bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors">${escapeHTML(cat)}</a>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  // 最后编辑时间
+  if (lastEdited) {
+    html += `<time class="mt-12 mb-8 block text-xs text-gray-500 ltr:text-right rtl:text-left dark:text-gray-400" datetime="${toISODate(lastEdited)}"><span>Last updated on</span> ${formatDate(lastEdited)}</time>`;
+  }
+
+  // 页脚 (分享 + 前后导航)
+  html += buildPageFooterHTML();
+
+  return html;
+}
+
+/**
+ * 构建 Publication 的 <main> 内容 (宽度切换 + pub metadata)
+ */
+function buildPublicationContent({
+  title,
+  dateDisplay,
+  authorsHTML,
+  readingTime,
+  linksHTML,
+  featuredHTML,
+  bodyHTML,
+  abstract,
+  pubTypeLabel,
+  pubType,
+  publicationVenue,
+  lastEdited,
+  hasAuthors,
+  hasDate,
+  hasReadingTime,
+}) {
+  let html = '';
+
+  // 标题
+  html += `<h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">${escapeHTML(title)}</h1>`;
+
+  // 元数据行
+  html += `<div class="mt-4 mb-16">`;
+  html += `<div class="text-gray-500 dark:text-gray-300 text-sm flex items-center flex-wrap gap-y-2">`;
+
+  if (dateDisplay && hasDate) {
+    html += `<span class="mr-1">${dateDisplay}</span>`;
+    if (hasAuthors) html += `<span class="mx-1">·</span>`;
+  }
+
+  html += authorsHTML;
+
+  if (hasReadingTime) {
+    html += `<span class="mx-1">·</span>`;
+    html += `<span class="mx-1">${readingTime} min read</span>`;
+  }
+
+  html += `</div>`;
+
+  if (linksHTML) {
+    html += `<div class="mt-3">${linksHTML}</div>`;
+  }
+
+  html += `</div>`;
+
+  // 封面图
+  html += featuredHTML;
+
+  // 宽度切换 + metadata + 正文
   html += `<div
         x-data="{
           widthMode: 'compact',
@@ -271,12 +767,12 @@ function renderPublicationMetadata({ abstract, pubTypeLabel, pubType, publicatio
           </template>
         </div>`;
 
+  // Abstract + Publication metadata
+  html += `<div class="flex flex-col gap-3 my-6">`;
+
   if (abstract) {
-    html += `<div class="flex flex-col gap-3 my-6">`;
     html += `<div class="font-bold text-2xl">Abstract</div>`;
     html += `<div>${escapeHTML(abstract)}</div>`;
-  } else {
-    html += `<div class="flex flex-col gap-3 my-6">`;
   }
 
   if (pubTypeLabel) {
@@ -292,74 +788,162 @@ function renderPublicationMetadata({ abstract, pubTypeLabel, pubType, publicatio
 
   html += `</div>`;
 
-  return html;
-}
-
-/**
- * 构建完整 main 区域内容
- */
-function buildMainContent({
-  title,
-  dateDisplay,
-  authorsHTML,
-  readingTime,
-  linksHTML,
-  featuredHTML,
-  metadataHTML,
-  proseHTML,
-  lastEdited,
-  hasAuthors,
-  hasDate,
-  hasReadingTime,
-}) {
-  let html = '';
-
-  html += `<h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">${escapeHTML(title)}</h1>`;
-
-  html += `<div class="mt-4 mb-16">`;
-  html += `<div class="text-gray-500 dark:text-gray-300 text-sm flex items-center flex-wrap gap-y-2">`;
-
-  if (dateDisplay && hasDate) {
-    html += `<span class="mr-1">${dateDisplay}</span>`;
-    if (hasAuthors) html += `<span class="mx-1">·</span>`;
-  }
-
-  html += authorsHTML;
-
-  if (hasReadingTime) {
-    html += `<span class="mx-1">·</span>`;
-    html += `<span class="mx-1">${readingTime} min read</span>`;
-  }
-
-  html += `</div>`;
-
-  if (linksHTML) {
-    html += `<div class="mt-3">${linksHTML}</div>`;
-  }
-
-  html += `</div>`;
-  html += featuredHTML;
-  html += metadataHTML;
-
-  if (proseHTML) {
-    html += proseHTML;
+  // 正文
+  if (bodyHTML) {
+    html += `<div class="prose prose-slate lg:prose-xl dark:prose-invert max-w-none">${bodyHTML}</div>`;
   }
 
   html += `</div>`; // close width toggle div
 
+  // 最后编辑时间
   if (lastEdited) {
     html += `<time class="mt-12 mb-8 block text-xs text-gray-500 ltr:text-right rtl:text-left dark:text-gray-400" datetime="${toISODate(lastEdited)}"><span>Last updated on</span> ${formatDate(lastEdited)}</time>`;
   }
 
-  html += `<div class="container mx-auto prose prose-slate lg:prose-xl dark:prose-invert mt-5"><div class="max-w-prose print:hidden">`;
-  html += `<section class="flex flex-row flex-wrap justify-center pt-4 text-xl">`;
-  html += `<a target=_blank rel=noopener class="m-1 rounded-md bg-neutral-300 p-1.5 text-neutral-700 hover:bg-primary-500 hover:text-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-primary-400 dark:hover:text-neutral-800" href="#" title="Share on X"><svg style="height:1em" viewBox="0 0 512 512"><path fill="currentColor" d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/></svg></a>`;
-  html += `</section>`;
-  html += `<div class="pt-1 no-prose w-full"><hr class="border-dotted border-neutral-300 dark:border-neutral-600"></div>`;
-  html += `</div></div>`;
+  // 页脚
+  html += buildPageFooterHTML();
 
   return html;
 }
+
+/**
+ * 构建 Author 个人页面内容
+ */
+function buildAuthorContent({
+  title,
+  pinyin,
+  role,
+  bio,
+  interests,
+  social,
+  organizations,
+  email,
+  avatarUrl,
+  education,
+}) {
+  let html = '';
+
+  html += `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">`;
+
+  // 头像 + 信息行
+  html += `<div class="flex flex-col sm:flex-row items-center sm:items-start gap-8 mb-12 mt-6">`;
+
+  // 头像
+  html += `<div class="flex-shrink-0">`;
+  if (avatarUrl) {
+    html += `<img src="${escapeHTML(avatarUrl)}" alt="${escapeHTML(title)}" width="256" height="256" class="w-48 h-48 rounded-2xl object-cover shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/10">`;
+  } else {
+    const initial = title ? title.charAt(0) : '?';
+    html += `<div class="w-48 h-48 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center shadow-lg"><span class="text-5xl font-bold text-blue-600 dark:text-blue-300">${escapeHTML(initial)}</span></div>`;
+  }
+  html += `</div>`;
+
+  // 信息
+  html += `<div class="flex-1 text-center sm:text-left">`;
+  html += `<h1 class="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-2">${escapeHTML(title)}</h1>`;
+
+  if (role) {
+    html += `<p class="text-xl text-primary-600 dark:text-primary-400 font-medium mb-2">${escapeHTML(role)}</p>`;
+  }
+
+  // Organization + Email
+  if (organizations.length > 0 || email) {
+    html += `<p class="text-gray-500 dark:text-gray-400 mb-3">`;
+    if (organizations.length > 0) {
+      const org = organizations[0];
+      html += `<span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">${escapeHTML(org.name || org)}</span>`;
+    }
+    if (organizations.length > 0 && email) {
+      html += `<span class="mx-2 text-gray-300 dark:text-gray-600">|</span>`;
+    }
+    if (email) {
+      html += `<span class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">${escapeHTML(email)}</span>`;
+    }
+    html += `</p>`;
+  }
+
+  // Bio
+  if (bio) {
+    html += `<p class="text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">${escapeHTML(bio)}</p>`;
+  }
+
+  // Education
+  if (education) {
+    html += `<p class="text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed mt-2"><span class="font-medium">教育背景：</span>${escapeHTML(education)}</p>`;
+  }
+
+  // Interests
+  if (interests.length > 0) {
+    html += `<div class="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">`;
+    for (const interest of interests) {
+      html += `<span class="inline-block bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm px-3 py-1 rounded-full">${escapeHTML(interest)}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  // Social Links
+  if (social.length > 0) {
+    html += `<div class="flex gap-4 mt-4 justify-center sm:justify-start">`;
+    for (const s of social) {
+      const link = s.url || s.link || '#';
+      const iconName = s.icon || 'link';
+      const label = s.label || iconName;
+      const iconHTML = getSocialIcon(iconName);
+      html += `<a href="${escapeHTML(link)}" target="_blank" rel="noopener" aria-label="${escapeHTML(iconName)}" title="${escapeHTML(label)}" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors text-xl">${iconHTML}</a>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`; // close info
+  html += `</div>`; // close flex
+
+  // 分隔线
+  html += `<hr class="border-0 border-t border-gray-300 dark:border-gray-600 mb-10">`;
+
+  // 成果列表占位 (需全量内容扫描，Worker 中不可行)
+  html += `<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">成果列表</h2>`;
+  html += `<p class="text-center text-gray-500 dark:text-gray-400 py-12">`
+    + `完整成果列表由 Hugo 全量构建生成，当前仅支持详情页即时渲染。<br>`
+    + `请访问 <a href="/publication/" class="text-primary-600 hover:underline">Publications</a> 和 <a href="/post/" class="text-primary-600 hover:underline">Posts</a> 列表页。`
+    + `</p>`;
+
+  html += `</div>`; // close max-w-7xl
+
+  return html;
+}
+
+/**
+ * 页脚 HTML (分享按钮 + 分隔线)
+ */
+function buildPageFooterHTML() {
+  return `<div class="container mx-auto prose prose-slate lg:prose-xl dark:prose-invert mt-5"><div class="max-w-prose print:hidden">
+<section class="flex flex-row flex-wrap justify-center pt-4 text-xl">
+  <a target=_blank rel=noopener class="m-1 rounded-md bg-neutral-300 p-1.5 text-neutral-700 hover:bg-primary-500 hover:text-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-primary-400 dark:hover:text-neutral-800" href="#" title="Share on X"><svg style="height:1em" viewBox="0 0 512 512"><path fill="currentColor" d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/></svg></a>
+</section>
+<div class="pt-1 no-prose w-full"><hr class="border-dotted border-neutral-300 dark:border-neutral-600"></div>
+</div></div>`;
+}
+
+/**
+ * 社交图标映射 (Font Awesome v6 classes)
+ * 支持 HugoBlox 常用的 icon_pack: fas / fab
+ */
+function getSocialIcon(name) {
+  // Font Awesome brands / solid 图标映射
+  const iconMap = {
+    envelope: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4L236.8 313.6c11.4 8.5 27 8.5 38.4 0L492.8 150.4c12.1-9.1 19.2-23.3 19.2-38.4c0-26.5-21.5-48-48-48H48zM0 176V384c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"/></svg>`,
+    github: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.6 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>`,
+    orcid: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M294.75 188.19h-45.92V342h47.47c67.62 0 83.12-51.34 83.12-76.91 0-41.64-26.54-76.9-84.67-76.9zM256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm-80.79 360.76h-29.84v-207.5h29.84zm-14.92-231.14a19.57 19.57 0 1 1 19.57-19.57 19.64 19.64 0 0 1-19.57 19.57zM300 369h-81V161.26h80.6c76.73 0 110.44 54.83 110.44 103.85C410 318.39 368.38 369 300 369z"/></svg>`,
+    blog: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>`,
+    'google-scholar': `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M390.9 298.5c0 0 0 .1.1.1c9.2 19.4 14.4 41.1 14.4 64C405.4 445.1 338.5 512 256 512s-149.4-66.9-149.4-149.4c0-22.9 5.2-44.6 14.4-64h0c1.7-3.6 3.6-7.2 5.6-10.7l0 0c15.1-26.6 39.3-47.8 67.9-59.3l0 0c7.3-3 15.2-5.3 23.3-6.9c3.7-.7 7.4-1.2 11.2-1.6c.5 0 .9-.1 1.4-.1c.5 0 .9.1 1.4.1c9.2 1.1 18.1 3.3 26.5 6.6l0 0c.7.3 1.5.6 2.2 1c2.8 1.2 5.6 2.5 8.3 3.9c.7.4 1.4.7 2.1 1.1c28.5 11.6 52.7 32.7 67.9 59.3l0 0c2.1 3.5 3.9 7 5.6 10.7zM194.4 249.8l0 0zm123.2 0l0 0zM186.6 157.7c0-38.3 31.1-69.4 69.4-69.4s69.4 31.1 69.4 69.4s-31.1 69.4-69.4 69.4s-69.4-31.1-69.4-69.4z"/></svg>`,
+  };
+
+  return iconMap[name] || `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>`;
+}
+
+// ============================================================================
+// HTML 转义
+// ============================================================================
 
 function escapeHTML(str) {
   if (!str) return '';

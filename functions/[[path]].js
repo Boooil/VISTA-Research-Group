@@ -1,29 +1,42 @@
 /**
  * VISTA Edge Renderer — Cloudflare Pages Function (catch-all)
  *
- * 拦截 publication/post/project/author 详情页请求，
- * 从 GitHub Raw API 获取最新 .md 内容，动态渲染为完整 HTML。
- * 其他路径通过 context.next() 透传给静态资源。
+ * Phase 3: 完整覆盖 publication/post/project/author 四种详情页
+ * Webhook 鉴权 / 监控日志 / 404 回退
  *
- * Phase 1: 仅处理 /publication/* 路径
+ * 其他路径通过 context.next() 透传给静态资源。
  */
 
 import { createLogger } from './_lib/utils.js';
-import { renderPublication } from './_lib/renderer.js';
+import { renderPublication, renderPost, renderProject, renderAuthor } from './_lib/renderer.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
+const POST_PATTERN = /^\/post\/([^/]+)\/?$/;
+const PROJECT_PATTERN = /^\/project\/([^/]+)\/?$/;
+const AUTHOR_PATTERN = /^\/author\/([^/]+)\/?$/;
+
+// 管理端点
 const PURGE_PATTERN = /^\/__purge\/?$/;
+
+// 渲染器映射
+const RENDERERS = {
+  publication: renderPublication,
+  post: renderPost,
+  project: renderProject,
+  author: renderAuthor,
+};
 
 export async function onRequest(context) {
   const { request, env, waitUntil, next } = context;
   const url = new URL(request.url);
   const pathname = url.pathname;
+  const startTime = Date.now();
 
   const log = createLogger(env.DEBUG === 'true');
 
   try {
-    // === 管理端点 ===
+    // === 管理端点: 缓存清除 ===
     if (request.method === 'POST' && PURGE_PATTERN.test(pathname)) {
       return handlePurge(request, env, waitUntil, log);
     }
@@ -32,8 +45,8 @@ export async function onRequest(context) {
     if (pathname === '/__health') {
       return new Response(JSON.stringify({
         status: 'ok',
-        version: '0.1.0',
-        phase: 1,
+        version: '0.3.0',
+        phase: 3,
         runtime: 'pages-function',
         timestamp: new Date().toISOString(),
       }), {
@@ -41,10 +54,18 @@ export async function onRequest(context) {
       });
     }
 
-    // === Phase 1: Publication 路由 ===
-    const pubMatch = pathname.match(PUBLICATION_PATTERN);
-    if (pubMatch) {
-      return handlePublication(url, env, waitUntil, log, pubMatch[1]);
+    // === 路由匹配 ===
+    let match;
+    for (const [type, pattern] of [
+      ['publication', PUBLICATION_PATTERN],
+      ['post', POST_PATTERN],
+      ['project', PROJECT_PATTERN],
+      ['author', AUTHOR_PATTERN],
+    ]) {
+      match = pathname.match(pattern);
+      if (match) {
+        return handleRoute(url, env, waitUntil, log, type, match[1], RENDERERS[type], startTime);
+      }
     }
 
     // === 未匹配路由 → 透传给静态资源 ===
@@ -52,67 +73,74 @@ export async function onRequest(context) {
     return next();
 
   } catch (err) {
-    log.error('Unexpected error', err.message);
-    log.error('Stack', err.stack);
+    log.error('Unexpected error', { message: err.message, stack: err.stack, category: 'fatal' });
     return new Response(
       'Edge Renderer Error\n\n' + err.message + '\n\n' + (err.stack || ''),
       {
         status: 500,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Edge-Renderer': 'v0.1-error' },
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Edge-Renderer': 'v0.3-error' },
       }
     );
   }
 }
 
 /**
- * 处理 /publication/<slug>/ 请求
+ * 通用路由处理器
  */
-async function handlePublication(url, env, waitUntil, log, slug) {
-  const cacheUrl = `${url.origin}/publication/${slug}/`;
+async function handleRoute(url, env, waitUntil, log, type, slug, renderFn, startTime) {
+  const cacheUrl = `${url.origin}/${type}/${slug}/`;
   const cache = caches.default;
 
-  // 1. 检查 Cache API (边缘缓存)
+  // 1. 检查 Cache API
   try {
     const cached = await cache.match(cacheUrl);
     if (cached) {
-      log.debug('Cache hit', { slug });
-      return cached;
+      const elapsed = Date.now() - startTime;
+      log.debug('Cache hit', { type, slug, elapsedMs: elapsed });
+      const response = new Response(cached.body, cached);
+      response.headers.set('X-Render-Duration', `${elapsed}ms`);
+      response.headers.set('X-Cache', 'HIT');
+      return response;
     }
   } catch (err) {
-    log.warn('Cache read failed, continuing', err.message);
+    log.warn('Cache read failed, continuing', { message: err.message });
   }
 
-  log.info('Cache miss, rendering', { slug });
+  log.info('Cache miss, rendering', { type, slug });
 
   // 2. 动态渲染
-  log.info('Starting render', { slug });
-  const result = await renderPublication({ slug, env, log });
-  log.info('Render result', { hasHtml: !!result.html, status: result.status, cacheKey: result.cacheKey });
+  const renderStart = Date.now();
+  let result;
+  try {
+    result = await renderFn({ slug, env, log });
+  } catch (err) {
+    log.error('Render function threw', { type, slug, message: err.message, category: 'render' });
+    return new Response('Not Found', { status: 404 });
+  }
+
   const { html, status, cacheKey } = result;
 
   // 3. 404 / 错误 → 尝试从 Pages 静态资源获取
   if (!html || status !== 200) {
-    log.warn('Render failed or 404, fetching from Pages origin', { slug, status });
+    log.warn('Render failed or 404, trying Pages origin', { type, slug, status });
     try {
-      const originRes = await fetch(new URL(url.pathname, url.origin), {
-        redirect: 'follow',
-      });
-      if (originRes.ok) {
-        return originRes;
-      }
+      const originRes = await fetch(new URL(url.pathname, url.origin), { redirect: 'follow' });
+      if (originRes.ok) return originRes;
     } catch (e) {
-      log.error('Origin fetch also failed', e.message);
+      log.error('Origin fetch failed', { message: e.message });
     }
-    // Hugo 静态版本也没有，返回 404
     return new Response('Not Found', { status: 404 });
   }
 
   // 4. 返回响应 + 异步写缓存
+  const totalTime = Date.now() - startTime;
   const response = new Response(html, {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
-      'X-Edge-Renderer': 'v0.1-phase1-pages',
+      'X-Edge-Renderer': 'v0.3-phase3-pages',
+      'X-Render-Type': type,
+      'X-Render-Duration': `${totalTime}ms`,
       'X-Render-Time': new Date().toISOString(),
     },
   });
@@ -122,9 +150,9 @@ async function handlePublication(url, env, waitUntil, log, slug) {
     (async () => {
       try {
         await cache.put(cacheUrl, response.clone());
-        log.debug('Cache put ok', { cacheKey });
+        log.debug('Cache put ok', { type, slug, cacheKey });
       } catch (err) {
-        log.warn('Cache put failed', err.message);
+        log.warn('Cache put failed', { message: err.message });
       }
     })()
   );
@@ -136,6 +164,21 @@ async function handlePublication(url, env, waitUntil, log, slug) {
  * 处理 /__purge 缓存失效请求
  */
 async function handlePurge(request, env, waitUntil, log) {
+  // 验证 Webhook 签名 (如果配置了 WEBHOOK_SECRET)
+  const secret = env.WEBHOOK_SECRET;
+  if (secret) {
+    const verified = await verifyGitHubSignature(request, secret);
+    if (!verified) {
+      log.warn('Webhook signature verification failed');
+      return new Response(JSON.stringify({ purged: false, error: 'unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  } else {
+    log.warn('WEBHOOK_SECRET not configured — purge endpoint is unprotected');
+  }
+
   try {
     const body = await request.json();
     const { path } = body;
@@ -145,16 +188,57 @@ async function handlePurge(request, env, waitUntil, log) {
       const cache = caches.default;
       const deleted = await cache.delete(cacheUrl);
       log.info('Cache purge', { path, deleted });
+
+      // 清除变体 URL
+      const altUrl = path.endsWith('/')
+        ? `https://vista-research-group.pages.dev${path.slice(0, -1)}`
+        : `https://vista-research-group.pages.dev${path}/`;
+      if (altUrl !== cacheUrl) {
+        await cache.delete(altUrl);
+      }
     }
 
     return new Response(JSON.stringify({ purged: true }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    log.error('Purge error', err.message);
+    log.error('Purge error', { message: err.message, category: 'purge' });
     return new Response(JSON.stringify({ purged: false, error: err.message }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
+/**
+ * 验证 GitHub Webhook HMAC-SHA256 签名
+ */
+async function verifyGitHubSignature(request, secret) {
+  const signature = request.headers.get('X-Hub-Signature-256');
+  if (!signature) return false;
+
+  const body = await request.clone().text();
+  if (!body) return false;
+
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw', encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+    );
+    const sigHex = signature.replace('sha256=', '');
+    const sigBytes = hexToBytes(sigHex);
+    return await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(body));
+  } catch (err) {
+    console.error('[AUTH] Signature verification error:', err.message);
+    return false;
+  }
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
 }
