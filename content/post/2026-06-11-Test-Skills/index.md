@@ -1,6 +1,6 @@
 ---
 title: "用 Agent Skill 重构网页应用测试"
-url_slug: 2026-06-11-Test-Skills
+slug: 2026-06-11-test-skills
 content_type: post
 date: 2026-06-11
 authors:

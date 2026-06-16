@@ -325,12 +325,15 @@ async function syncContentMapping(type, folder, env, origin, log) {
     }
     const md = await res.text();
     const { frontmatter } = parseMarkdown(md);
-    if (!frontmatter.title) {
-      log.warn('syncContentMapping: no title', { type, folder });
+    // URL 由 frontmatter.slug 字段决定(Hugo permalink :slug 优先用它);
+    // author 无 slug 字段,回退 pinyin;再无则回退 urlize(title)。
+    const slugSource = frontmatter.slug || frontmatter.pinyin || frontmatter.title;
+    if (!slugSource) {
+      log.warn('syncContentMapping: no slug/title', { type, folder });
       return null;
     }
     // 写 KV 即时映射 + 返回 slug
-    const slug = await writeSlugMapping(env.AUTHORS, type, frontmatter.title, folder, log);
+    const slug = await writeSlugMapping(env.AUTHORS, type, slugSource, folder, log);
     return slug;
   } catch (e) {
     log.error('syncContentMapping error', { type, folder, message: e.message });

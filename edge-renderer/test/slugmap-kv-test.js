@@ -54,5 +54,13 @@ console.log('=== Test 5: 无 KV 传入时退化为纯 manifest(不报错) ===');
 const r4 = await resolveFolder('publication', 'old-paper', ORIGIN, log);
 assert(r4.known && r4.folder === 'OldPaper', '无 kv 参数时 manifest 仍正常');
 
+console.log('=== Test 6: slug 字段值(已规范英文)直接驱动映射(新模型) ===');
+// 新模型:URL=slug 字段,webhook 用 frontmatter.slug(如 "trvp")写映射,非 urlize(title)
+const kv2 = makeKV();
+const s6 = await writeSlugMapping(kv2, 'publication', 'trvp', 'TRVP', log);
+assert(s6 === 'trvp', `slug 字段 trvp → ${s6}(urlize 幂等)`);
+const r6 = await resolveFolder('publication', 'trvp', ORIGIN, log, kv2);
+assert(r6.known && r6.folder === 'TRVP', 'slug=trvp 解析回文件夹 TRVP');
+
 console.log(failed === 0 ? '\nALL PASSED' : `\n${failed} FAILED`);
 if (failed > 0) process.exit(1);

@@ -148,7 +148,7 @@ collections:
     folder: "content/post"
     path: "{{slug}}/index"
     create: true
-    slug: "{{year}}-{{month}}-{{day}}-{{fields.url_slug}}"
+    slug: "{{year}}-{{month}}-{{day}}-{{fields.slug}}"
     summary: "{{year}}-{{month}}-{{day}} — {{title}}"
     editor:
       preview: true
@@ -161,10 +161,10 @@ collections:
         widget: "string"
         hint: "文章标题"
       - label: "URL 标识 (英文)"
-        name: "url_slug"
+        name: "slug"
         widget: "string"
-        hint: "用作文件夹名与 URL 末段，建议用小写字母/数字/连字符，如 my-update。中文标题必须手填此项。"
-        pattern: ['^[A-Za-z0-9][A-Za-z0-9_-]*$', '只能用字母、数字、连字符、下划线，且不能以连字符/下划线开头']
+        hint: "用作 URL 末段，只能小写字母/数字/连字符，如 my-update。每篇必须唯一，中文标题也要手填。"
+        pattern: ['^[a-z0-9][a-z0-9-]*$', '只能用小写字母、数字、连字符，且不能以连字符开头']
       - label: "发布日期"
         name: "date"
         widget: "datetime"
@@ -226,7 +226,7 @@ collections:
     folder: "content/project"
     path: "{{slug}}/index"
     create: true
-    slug: "{{fields.url_slug}}"
+    slug: "{{fields.slug}}"
     editor:
       preview: true
     filter:
@@ -236,11 +236,11 @@ collections:
       - label: "项目名称"
         name: "title"
         widget: "string"
-      - label: "URL 标识 (英文文件夹名)"
-        name: "url_slug"
+      - label: "URL 标识 (英文)"
+        name: "slug"
         widget: "string"
-        hint: "用作文件夹名与 URL，建议用小写字母/数字/连字符，如 my-project。中文项目名必须手填此项。"
-        pattern: ['^[A-Za-z0-9][A-Za-z0-9_-]*$', '只能用字母、数字、连字符、下划线，且不能以连字符/下划线开头']
+        hint: "用作 URL 末段，只能小写字母/数字/连字符，如 my-project。每篇必须唯一，中文名也要手填。"
+        pattern: ['^[a-z0-9][a-z0-9-]*$', '只能用小写字母、数字、连字符，且不能以连字符开头']
       - label: "副标题"
         name: "subtitle"
         widget: "string"
@@ -318,7 +318,7 @@ collections:
     folder: "content/publication"
     path: "{{slug}}/index"
     create: true
-    slug: "{{fields.url_slug}}"
+    slug: "{{fields.slug}}"
     editor:
       preview: true
     filter:
@@ -328,11 +328,11 @@ collections:
       - label: "论文标题"
         name: "title"
         widget: "string"
-      - label: "URL 标识 (英文文件夹名)"
-        name: "url_slug"
+      - label: "URL 标识 (英文)"
+        name: "slug"
         widget: "string"
-        hint: "用作文件夹名与 URL，建议用小写字母/数字/连字符，如 trvp 或 dde-net。中文标题必须手填此项。"
-        pattern: ['^[A-Za-z0-9][A-Za-z0-9_-]*$', '只能用字母、数字、连字符、下划线，且不能以连字符/下划线开头']
+        hint: "用作 URL 末段，只能小写字母/数字/连字符，如 trvp 或 dde-net。每篇必须唯一，中文标题也要手填。"
+        pattern: ['^[a-z0-9][a-z0-9-]*$', '只能用小写字母、数字、连字符，且不能以连字符开头']
       - label: "作者"
         name: "authors"
         widget: "author-list"

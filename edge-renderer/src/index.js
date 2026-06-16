@@ -360,11 +360,13 @@ async function syncContentMapping(type, folder, env, origin, log) {
     }
     const md = await res.text();
     const { frontmatter } = parseMarkdown(md);
-    if (!frontmatter.title) {
-      log.warn('syncContentMapping: no title', { type, folder });
+    // URL 由 frontmatter.slug 决定;author 回退 pinyin;再无回退 title。
+    const slugSource = frontmatter.slug || frontmatter.pinyin || frontmatter.title;
+    if (!slugSource) {
+      log.warn('syncContentMapping: no slug/title', { type, folder });
       return null;
     }
-    return await writeSlugMapping(env.AUTHORS, type, frontmatter.title, folder, log);
+    return await writeSlugMapping(env.AUTHORS, type, slugSource, folder, log);
   } catch (e) {
     log.error('syncContentMapping error', { type, folder, message: e.message });
     return null;

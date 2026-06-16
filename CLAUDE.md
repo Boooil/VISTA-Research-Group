@@ -20,21 +20,22 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 - `edge-renderer/src/*` 是**未挂路由的独立 Worker 副本**,与 `functions/_lib/*` **保持同源**:改渲染逻辑要两边同步。差异仅在入口——Function 用 `next()` 回退,Worker 用 `fetch(request)`。
 - 改"线上行为"必须改 `functions/`。
 
-### 2. URL slug ≠ 内容文件夹名(最易踩的坑)
-- Hugo permalink 是 `:slug`,内容无显式 `slug:` frontmatter → **URL = urlize(title)**,与源文件夹名(`TRVP`、`WangBoyu_patent2`)无关。
-- 解析靠 `slug-manifest.json`(Hugo 构建产出,`layouts/index.slugmanifest.json`)做 `urlSlug→folder`;`resolveFolder` 未命中再查 KV `slugmap:*`(新文章兜底)。
-- 改 URL/slug 相关逻辑前,先理解这层映射,别假设 slug==folder。
+### 2. URL slug 来自 `slug` frontmatter 字段,≠ 内容文件夹名
+- Hugo permalink 是 `:slug`,**优先用 frontmatter `slug:` 字段**(无则才回退 urlize(title))。所有内容都带 `slug:`,所以 **URL = slug 字段值**,与源文件夹名(`TRVP`、`WangBoyu_patent2`)无关。
+- slug 字段值各篇唯一 → **根除了"两篇同 title 撞同一 URL"的重名 bug**(早期 URL=urlize(title) 时会撞)。
+- 解析靠 `slug-manifest.json`(Hugo 构建产出,`layouts/index.slugmanifest.json`,用 `.RelPermalink` 生成)做 `slug→folder`;`resolveFolder` 未命中再查 KV `slugmap:*`(新文章兜底)。
+- 改 URL/slug 逻辑前,先理解 slug≠folder 这层映射,别假设 slug==folder。
+- Hugo 对 `slug:` 值**不 urlize**(原样保留大小写/下划线),所以 slug 必须写成规范小写连字符。
 
 ### 3. 不要在 shell 里硬编码带 hash 的 CSS/JS 路径
 - `/css/_entry.<hash>.css` 的 hash 是构建指纹,每次构建漂移,硬编码必 404(`MIME type text/html`)。
 - 已改为运行时从线上 Pages 页面(`/publication/`)抓 `<head>` 注入(`functions/_lib/head-assets.js` 的 `getHeadAssets`),`__HEAD_ASSETS__` 占位符。别退回硬编码。
 
-### 4. CMS 新建内容必须手填 `url_slug`,文件夹名不能依赖中文 title
+### 4. CMS 新建内容必须手填 `slug`(英文唯一短名)
 - Decap `encoding: ascii` 会把纯中文 title 剥空 → 路径畸形 → GitHub 报 `malformed path component`。
-- publication/project/post 的 `slug:` 用 `{{fields.url_slug}}`,`url_slug` 必填,pattern `^[A-Za-z0-9][A-Za-z0-9_-]*$`。
-- **`path:` 必须用 `{{slug}}/index`,不能用 `{{fields.url_slug}}/index`**:Decap 的 `path` 模板对 `{{fields.X}}` 解析不可靠(issue #4787/#4092),会解析成空 → `content/publication//index.md` → GitHub `malformed path component`。`{{fields.X}}` 只放 `slug:` 里(稳定),`path` 引用 `{{slug}}`。
-- 新增内容文件时,frontmatter 必须含 `url_slug`(值=文件夹名),否则 CMS 编辑会卡保存。
-- `url_slug` 只决定文件夹名;Hugo URL 仍是 urlize(title),两者解耦,改 `url_slug` 不影响已有 URL。
+- publication/project/post 都有必填 `slug` 字段(可见 string widget),pattern `^[a-z0-9][a-z0-9-]*$`(小写连字符)。`slug:` 模板用 `{{fields.slug}}`。
+- **`path:` 必须用 `{{slug}}/index`,不能用 `{{fields.slug}}/index`**:Decap 的 `path` 模板对 `{{fields.X}}` 解析不可靠(issue #4787/#4092),会解析成空 → `content/publication//index.md` → GitHub `malformed path component`。`{{fields.X}}` 只放 `slug:` 里(稳定),`path` 引用 `{{slug}}`。
+- slug 字段同时决定 **URL** 和文件夹名;每篇必须唯一(撞了会覆盖)。新增内容文件 frontmatter 必须含 `slug`,否则 CMS 编辑会卡保存。
 - Decap 在浏览器缓存 config + 本地草稿:改 config 后需硬刷 `/admin/`;弹"加载本地备份"时别加载旧的坏草稿。
 
 ### 4b. 时区:CMS 本地时间 vs 构建机 UTC → 必须 `buildFuture: true`
@@ -48,8 +49,10 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 - 排查"列表页缺文章"时:别凭单条 grep 下结论(易被 CDN 缓存/中文目录名误导),用唯一链接计数 + sitemap + 探针对照实验交叉印证。
 
 
-### 5. urlize 规则(B1 依赖,改 slug 逻辑须保持一致)
-Worker 端 `urlizeTitle()`(`functions/_lib/slug-map.js`)必须逐字复刻 Hugo:小写 → 删标点(不产生 `-`)→ 空白转 `-` → 合并/去首尾 `-` → CJK 原样保留。改动后跑 `edge-renderer/test/urlize-test.js` 比对现有 12 篇。
+### 5. 新文章 KV 映射用 `slug` 字段,不是 title
+- webhook 的 `syncContentMapping`(`functions/[[path]].js`)写 KV slugmap 时,slug 来源是 `frontmatter.slug || frontmatter.pinyin || frontmatter.title`(优先 slug 字段,与 Hugo 的 URL 一致)。
+- `urlizeTitle()`(`functions/_lib/slug-map.js`)对已规范的 slug 值是幂等 no-op;它仍存在是为兼容无 slug 字段的旧/author 内容。CMS pattern 强制小写连字符,保证 urlize 不改变 slug。
+- 改 slug 逻辑后跑 `edge-renderer/test/urlize-test.js` 和 `slugmap-kv-test.js`。
 
 ### 6. Webhook purge 需要 `WEBHOOK_SECRET`
 - `/__purge` 用 HMAC-SHA256 验签;Cloudflare Pages env 与 GitHub webhook secret 必须一致。
