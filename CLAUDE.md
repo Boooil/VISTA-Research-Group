@@ -31,9 +31,22 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 
 ### 4. CMS 新建内容必须手填 `url_slug`,文件夹名不能依赖中文 title
 - Decap `encoding: ascii` 会把纯中文 title 剥空 → 路径畸形 → GitHub 报 `malformed path component`。
-- publication/project/post 都用 `path: {{fields.url_slug}}`,`url_slug` 必填,pattern `^[A-Za-z0-9][A-Za-z0-9_-]*$`。
+- publication/project/post 的 `slug:` 用 `{{fields.url_slug}}`,`url_slug` 必填,pattern `^[A-Za-z0-9][A-Za-z0-9_-]*$`。
+- **`path:` 必须用 `{{slug}}/index`,不能用 `{{fields.url_slug}}/index`**:Decap 的 `path` 模板对 `{{fields.X}}` 解析不可靠(issue #4787/#4092),会解析成空 → `content/publication//index.md` → GitHub `malformed path component`。`{{fields.X}}` 只放 `slug:` 里(稳定),`path` 引用 `{{slug}}`。
 - 新增内容文件时,frontmatter 必须含 `url_slug`(值=文件夹名),否则 CMS 编辑会卡保存。
 - `url_slug` 只决定文件夹名;Hugo URL 仍是 urlize(title),两者解耦,改 `url_slug` 不影响已有 URL。
+- Decap 在浏览器缓存 config + 本地草稿:改 config 后需硬刷 `/admin/`;弹"加载本地备份"时别加载旧的坏草稿。
+
+### 4b. 时区:CMS 本地时间 vs 构建机 UTC → 必须 `buildFuture: true`
+- CMS 的 `date` 默认 `{{now}}` 按**浏览器本地时间**(北京 UTC+8)生成;Cloudflare Pages 构建机用 **UTC**。
+- 中国时间下午(UTC 当天未到)发的文,`date` 会超前 UTC 一天,被 Hugo 默认判为"未来日期"**跳过**→ 详情页(边缘渲染,不查日期)可见,但列表页/sitemap(Hugo)缺失。
+- `config/_default/hugo.yaml` 已设 `buildFuture: true` 根治。**实测 `timeZone: Asia/Shanghai` 无效**(Hugo 对纯日期 future 判定不吃 timeZone),别改回去。本站无定时发布需求。
+
+### 4c. 列表页/首页是 Hugo 产物,与边缘渲染无关,有 40-60s 构建窗口
+- 边缘渲染器**只接管详情页**(`/publication|post|project|author/<slug>/`),列表页 `/publication/`、首页、sitemap 一律透传 Pages 静态产物。
+- 新文章详情页**秒级可见**(边缘渲染),但出现在**列表页要等 Hugo 构建完成**(40-60s)。这是设计文档的「双重渲染窗口」,不是 bug。
+- 排查"列表页缺文章"时:别凭单条 grep 下结论(易被 CDN 缓存/中文目录名误导),用唯一链接计数 + sitemap + 探针对照实验交叉印证。
+
 
 ### 5. urlize 规则(B1 依赖,改 slug 逻辑须保持一致)
 Worker 端 `urlizeTitle()`(`functions/_lib/slug-map.js`)必须逐字复刻 Hugo:小写 → 删标点(不产生 `-`)→ 空白转 `-` → 合并/去首尾 `-` → CJK 原样保留。改动后跑 `edge-renderer/test/urlize-test.js` 比对现有 12 篇。
