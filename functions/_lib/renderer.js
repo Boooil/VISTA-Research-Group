@@ -21,6 +21,25 @@ marked.use({
 });
 
 /**
+ * 将 Markdown 正文中的相对图片路径转为 GitHub Raw 绝对路径
+ * 修复: publication 内容中的图片 404 问题
+ */
+function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
+  if (!markdown) return '';
+
+  return markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+    // 跳过绝对 URL (http/https) 和根路径
+    if (/^(https?:)?\/\//.test(src) || src.startsWith('/')) {
+      return match;
+    }
+    // 解析相对路径
+    const resolved = src.replace(/^\.\//, '');
+    const absoluteUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${githubContentDir}${resolved}`;
+    return `![${alt}](${absoluteUrl})`;
+  });
+}
+
+/**
  * 渲染 publication 页面
  * @param {object} params
  * @param {string} params.slug - publication slug
@@ -68,14 +87,17 @@ export async function renderPublication({ slug, env, log }) {
     return { html: null, status: 500, cacheKey: null };
   }
 
-  // 4. Markdown → HTML
+  // 4. 转换相对图片路径 → GitHub Raw 绝对 URL
+  const processedBody = convertImagePaths(body, githubPath, GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+
+  // 5. Markdown → HTML
   let bodyHTML = '';
-  if (body) {
+  if (processedBody) {
     try {
-      bodyHTML = marked.parse(body);
+      bodyHTML = marked.parse(processedBody);
     } catch (err) {
       log.error('Markdown parsing failed', err.message);
-      bodyHTML = `<pre>${escapeHTML(body)}</pre>`;
+      bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
     }
   }
 
