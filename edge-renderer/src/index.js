@@ -11,7 +11,7 @@
 import { createLogger } from './utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './renderer.js';
 import { parseMarkdown } from './frontmatter.js';
-import { resolveFolder, resolveSlugByFolder } from './slug-map.js';
+import { resolveFolder, resolveSlugByFolder, writeSlugMapping } from './slug-map.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
@@ -138,10 +138,11 @@ async function handleRoute(request, url, env, ctx, log, type, slug, renderFn, st
   }
 
   // 2. 解析真实内容文件夹名 (URL slug ≠ 文件夹名)
-  const { folder, known } = await resolveFolder(type, slug, url.origin, log);
+  //    manifest 未命中时,用 KV slugmap 兜底(新文章在 Hugo 构建完成前即可解析)
+  const { folder, known } = await resolveFolder(type, slug, url.origin, log, env.AUTHORS);
   if (!known || !folder) {
-    log.info('Slug not in manifest, passing through to Pages', { type, slug, known });
-    return passthroughToPages(request, log, { type, slug, reason: 'not-in-manifest' });
+    log.info('Slug not resolved, passing through to Pages', { type, slug, known });
+    return passthroughToPages(request, log, { type, slug, reason: 'not-resolved' });
   }
 
   log.info('Cache miss, rendering', { type, slug, folder });
@@ -249,26 +250,36 @@ async function handlePurge(request, env, ctx, log) {
 
     // === 形态 1：GitHub push payload ===
     if (Array.isArray(body.commits)) {
-      const paths = collectChangedFiles(body.commits);
-      const targets = paths.map(parseContentPath).filter(Boolean);
-      const seen = new Set();
-      const purged = [];
-      for (const { type, folder } of targets) {
-        const dedupKey = `${type}/${folder}`;
-        if (seen.has(dedupKey)) continue;
-        seen.add(dedupKey);
+      const { changed, removed } = collectChangedFiles(body.commits);
+      const changedTargets = dedupTargets(changed.map(parseContentPath).filter(Boolean));
+      const removedTargets = dedupTargets(removed.map(parseContentPath).filter(Boolean));
 
-        const urlSlug = await resolveSlugByFolder(type, folder, origin, log);
-        if (!urlSlug) {
-          log.info('Purge: slug not in manifest yet (new content?)', { type, folder });
-          continue;
+      const results = [];
+
+      // 新增/修改：拉 index.md → 解析 title → 写 KV slug 映射(新文章兜底) + 清缓存
+      for (const { type, folder } of changedTargets) {
+        const slug = await syncContentMapping(type, folder, env, origin, log);
+        if (slug) {
+          const pagePath = `/${type}/${encodeURIComponent(slug)}/`;
+          const deleted = await purgePage(cache, origin, pagePath, log);
+          results.push({ type, folder, slug, action: 'upsert', deleted });
+        } else {
+          log.warn('Could not resolve slug for changed content', { type, folder });
         }
-        const pagePath = `/${type}/${urlSlug}/`;
-        const deleted = await purgePage(cache, origin, pagePath, log);
-        purged.push({ type, folder, path: pagePath, deleted });
       }
-      log.info('Webhook purge complete', { count: purged.length });
-      return new Response(JSON.stringify({ purged: true, items: purged }), {
+
+      // 删除：用 manifest 反查 slug 清缓存
+      for (const { type, folder } of removedTargets) {
+        const urlSlug = await resolveSlugByFolder(type, folder, origin, log);
+        if (urlSlug) {
+          const pagePath = `/${type}/${urlSlug}/`;
+          const deleted = await purgePage(cache, origin, pagePath, log);
+          results.push({ type, folder, action: 'remove', deleted });
+        }
+      }
+
+      log.info('Webhook processed', { count: results.length });
+      return new Response(JSON.stringify({ purged: true, items: results }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -296,18 +307,68 @@ async function handlePurge(request, env, ctx, log) {
 }
 
 /**
- * 收集 push payload 中所有变更文件路径 (added + modified + removed)
+ * 收集 push payload 中的变更文件路径，区分"新增/修改"与"删除"
  */
 function collectChangedFiles(commits) {
-  const files = new Set();
+  const changed = new Set();
+  const removed = new Set();
   for (const c of commits) {
-    for (const list of [c.added, c.modified, c.removed]) {
-      if (Array.isArray(list)) {
-        for (const f of list) files.add(f);
-      }
-    }
+    for (const f of c.added || []) changed.add(f);
+    for (const f of c.modified || []) changed.add(f);
+    for (const f of c.removed || []) removed.add(f);
   }
-  return [...files];
+  for (const f of removed) changed.delete(f);
+  return { changed: [...changed], removed: [...removed] };
+}
+
+/**
+ * 对 (type, folder) 列表去重
+ */
+function dedupTargets(targets) {
+  const seen = new Set();
+  const out = [];
+  for (const t of targets) {
+    const key = `${t.type}/${t.folder}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
+
+/**
+ * 拉取变更内容的 index.md，解析标题，写入 KV slug 映射(新文章兜底)，返回 slug
+ */
+async function syncContentMapping(type, folder, env, origin, log) {
+  const {
+    GITHUB_OWNER = 'Boooil',
+    GITHUB_REPO = 'VISTA-Research-Group',
+    GITHUB_BRANCH = 'main',
+  } = env;
+  const dir = type === 'author' ? 'authors' : type;
+  const file = type === 'author' ? '_index.md' : 'index.md';
+  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/content/${dir}/${folder}/${file}`;
+
+  try {
+    const res = await fetch(rawUrl, {
+      cf: { cacheTtl: 10 },
+      headers: { 'User-Agent': 'VISTA-Edge-Renderer/webhook' },
+    });
+    if (!res.ok) {
+      log.warn('syncContentMapping: fetch md failed', { type, folder, status: res.status });
+      return null;
+    }
+    const md = await res.text();
+    const { frontmatter } = parseMarkdown(md);
+    if (!frontmatter.title) {
+      log.warn('syncContentMapping: no title', { type, folder });
+      return null;
+    }
+    return await writeSlugMapping(env.AUTHORS, type, frontmatter.title, folder, log);
+  } catch (e) {
+    log.error('syncContentMapping error', { type, folder, message: e.message });
+    return null;
+  }
 }
 
 /**
