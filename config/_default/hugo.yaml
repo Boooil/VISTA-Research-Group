@@ -5,6 +5,10 @@ baseURL: "https://vista-research-group.pages.dev/"
 title: "VISTA Research Group"
 enableGitInfo: false
 enableRobotsTXT: true
+# 构建未来日期的内容。CMS 用浏览器本地时间(北京 UTC+8)生成 date，
+# 而 Cloudflare Pages 构建机用 UTC；中国时间下午发的文章日期会超前 UTC 一天，
+# 被 Hugo 默认判为"未来"而跳过列表页。开启此项消除该时区矛盾(本站无定时发布需求)。
+buildFuture: true
 pagination:
   pagerSize: 10
 timeout: "120s"
