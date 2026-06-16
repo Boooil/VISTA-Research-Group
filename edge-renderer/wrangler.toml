@@ -1,0 +1,35 @@
+# VISTA Edge Renderer — Cloudflare Worker
+# 为 publication/post/project/author 详情页提供秒级动态渲染
+name = "vista-edge-renderer"
+main = "src/index.js"
+compatibility_date = "2025-06-16"
+
+# Worker Routes — 挂载在 Pages 自定义域名上
+# 部署后需在 Cloudflare Dashboard 手动配置:
+#   vista-research-group.pages.dev/* → vista-edge-renderer
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "AUTHORS"
+id = "07984ae6b30640e9a52a43fe8656b85f"
+
+[[kv_namespaces]]
+binding = "SHELLS"
+id = "0755c260c8d34d78afd51dd30825953b"
+
+# Environment variables
+[vars]
+GITHUB_OWNER = "Boooil"
+GITHUB_REPO = "VISTA-Research-Group"
+GITHUB_BRANCH = "main"
+SITE_BASE_URL = "https://vista-research-group.pages.dev"
+# WEBHOOK_SECRET 通过 wrangler secret put 设置
+#   或通过 Cloudflare Dashboard > Workers > Settings > Variables > Secrets
+
+# Cron Triggers — 定时任务
+[triggers]
+crons = ["0 0 * * *"]  # 每日 UTC 0:00 刷新 author KV
+
+# Observability
+[observability]
+enabled = true

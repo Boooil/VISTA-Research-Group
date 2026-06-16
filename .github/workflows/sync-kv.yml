@@ -1,0 +1,95 @@
+# Sync Shell Templates & Author Data to Cloudflare KV
+#
+# Phase 3.2: GitHub Action 集成 — 自动上传 Shell + 同步 KV
+#
+# 触发条件:
+#   1. push main 且涉及 authors / assets / config / theme / layouts 变更
+#   2. 每日定时 (UTC 0:00)
+#   3. 手动触发 (workflow_dispatch)
+
+name: Sync KV (Shells + Authors)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/authors/**'
+      - 'assets/**'
+      - 'config/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'layouts/**'
+      - '.github/workflows/sync-kv.yml'
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-kv
+  cancel-in-progress: true
+
+jobs:
+  sync-kv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'extended'
+          extended: true
+
+      - name: Install edge-renderer deps
+        run: cd edge-renderer && npm ci
+
+      - name: Build Hugo site
+        run: |
+          hugo --minify --gc --cleanDestinationDir \
+            --enableGitInfo \
+            --baseURL https://vista-research-group.pages.dev/
+
+      - name: Generate search index
+        run: npx pagefind --site public --force-language zh
+
+      - name: Extract Shell Templates
+        run: node scripts/extract-shells.js
+
+      - name: Upload Shells to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        working-directory: edge-renderer
+        run: |
+          for type in publication post project author; do
+            shell_file="../scripts/shells/shell-${type}.html"
+            if [ -f "$shell_file" ]; then
+              echo "Uploading shell:${type}..."
+              npx wrangler kv:key put --binding=SHELLS "shell:${type}" --path="$shell_file"
+            else
+              echo "WARNING: shell-${type}.html not found, skipping"
+            fi
+          done
+
+      - name: Generate & Upload Author Data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        working-directory: edge-renderer
+        run: |
+          node scripts/seed-authors.js
+          npx wrangler kv:bulk put --binding=AUTHORS scripts/authors-kv-bulk.json
+
+      - name: Summary
+        run: |
+          echo "### ✅ KV Sync Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- 4 shell templates → SHELLS KV" >> $GITHUB_STEP_SUMMARY
+          echo "- Author data → AUTHORS KV" >> $GITHUB_STEP_SUMMARY
