@@ -34,3 +34,5 @@ content_type: post
 测试CloudFlare托管网站后后台编辑功能
 
 增加作者测试
+
+热更新测试
