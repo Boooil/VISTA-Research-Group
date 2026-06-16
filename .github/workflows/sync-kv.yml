@@ -74,7 +74,7 @@ jobs:
             shell_file="../scripts/shells/shell-${type}.html"
             if [ -f "$shell_file" ]; then
               echo "Uploading shell:${type}..."
-              npx wrangler kv:key put --binding=SHELLS "shell:${type}" --path="$shell_file"
+              npx wrangler@4 kv key put --binding=SHELLS "shell:${type}" --path="$shell_file"
             else
               echo "WARNING: shell-${type}.html not found, skipping"
             fi
@@ -86,7 +86,7 @@ jobs:
         working-directory: edge-renderer
         run: |
           node scripts/seed-authors.js
-          npx wrangler kv:bulk put --binding=AUTHORS scripts/authors-kv-bulk.json
+          npx wrangler@4 kv bulk put --binding=AUTHORS scripts/authors-kv-bulk.json
 
       - name: Summary
         run: |

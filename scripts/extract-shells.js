@@ -12,7 +12,7 @@
  *   3. 输出: scripts/shells/shell-{type}.html + shell-templates.js
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,39 +36,24 @@ const SHELL_CONFIGS = [
   {
     type: 'publication',
     layout: 'standard',
-    // 找一个有代表性的 publication 页面
-    sourcePaths: [
-      'publication/DDE-Net/index.html',
-      'publication/TRVP/index.html',
-      'publication/UrbanMUDA/index.html',
-      'publication/BehaviorGenerationforHeterogeneousAgentsinUrbanSimulationDeduction/index.html',
-    ],
+    // URL slug 由标题 urlize 生成，与文件夹名不一致 → 用 section 自动发现首个详情页
+    section: 'publication',
   },
   {
     type: 'post',
     layout: 'standard',
-    sourcePaths: [
-      'post/2026-06-14-vista/index.html',
-      'post/2026-06-10-3D-BLU-Benchmark/index.html',
-      'post/2026-06-10-cms/index.html',
-    ],
+    section: 'post',
   },
   {
     type: 'project',
     layout: 'standard',
-    // Project 可能没有独立页面，fallback 到 post 结构
-    sourcePaths: [
-      'project/index.html',  // 列表页，非详情页
-    ],
-    fallbackType: 'post',  // 无独立页面时复用 post 的 shell
+    section: 'project',
+    fallbackType: 'post',  // 无独立详情页时复用 post 的 shell
   },
   {
     type: 'author',
     layout: 'author',
-    sourcePaths: [
-      'author/WangBoyu/index.html',
-      'author/MengQingxin/index.html',
-    ],
+    section: 'author',
   },
 ];
 
@@ -83,7 +68,7 @@ const results = {};
 for (const config of SHELL_CONFIGS) {
   console.log(`--- Processing: ${config.type} (layout: ${config.layout}) ---`);
 
-  const sourcePath = findExistingPath(config.sourcePaths);
+  const sourcePath = discoverDetailPage(config.section);
   if (!sourcePath) {
     if (config.fallbackType) {
       console.log(`  No source page found, will reuse "${config.fallbackType}" shell`);
@@ -137,10 +122,10 @@ console.log('\n=== Done ===');
 console.log('\nNext steps:');
 console.log('  1. Review generated shells in scripts/shells/');
 console.log('  2. Upload shells to KV:');
-console.log('     npx wrangler kv:key put --binding=SHELLS "shell:publication" --path=scripts/shells/shell-publication.html');
-console.log('     npx wrangler kv:key put --binding=SHELLS "shell:post" --path=scripts/shells/shell-post.html');
-console.log('     npx wrangler kv:key put --binding=SHELLS "shell:project" --path=scripts/shells/shell-project.html');
-console.log('     npx wrangler kv:key put --binding=SHELLS "shell:author" --path=scripts/shells/shell-author.html');
+console.log('     npx wrangler kv key put --binding=SHELLS "shell:publication" --path=scripts/shells/shell-publication.html');
+console.log('     npx wrangler kv key put --binding=SHELLS "shell:post" --path=scripts/shells/shell-post.html');
+console.log('     npx wrangler kv key put --binding=SHELLS "shell:project" --path=scripts/shells/shell-project.html');
+console.log('     npx wrangler kv key put --binding=SHELLS "shell:author" --path=scripts/shells/shell-author.html');
 console.log('  3. Or run the GitHub Action to automate step 2');
 
 // ============================================================================
@@ -362,6 +347,53 @@ function extractAuthorShell(html) {
 
 /**
  * 从候选路径列表中找到第一个存在的文件
+ */
+/**
+ * 在 public/<section>/ 下自动发现首个详情页 (<slug>/index.html)。
+ *
+ * 因为 permalink 为 :slug 且内容无显式 slug:，URL slug 由标题 urlize 生成，
+ * 与源文件夹名不一致，无法硬编码路径。这里扫描 section 目录下的子目录，
+ * 取首个含 index.html 的子目录作为代表性详情页。
+ *
+ * @param {string} section - publication / post / project / author
+ * @returns {string|null} 详情页 index.html 的绝对路径
+ */
+function discoverDetailPage(section) {
+  const sectionDir = resolve(PUBLIC_DIR, section);
+  if (!existsSync(sectionDir)) return null;
+
+  let entries;
+  try {
+    entries = readdirSync(sectionDir);
+  } catch {
+    return null;
+  }
+
+  // 排序保证可复现 (避免每次构建选到不同页面)
+  entries.sort();
+
+  for (const name of entries) {
+    const subDir = resolve(sectionDir, name);
+    let st;
+    try {
+      st = statSync(subDir);
+    } catch {
+      continue;
+    }
+    if (!st.isDirectory()) continue;
+    // 跳过分页等非详情目录
+    if (name === 'page' || name === 'pagefind') continue;
+
+    const indexPath = resolve(subDir, 'index.html');
+    if (existsSync(indexPath)) {
+      return indexPath;
+    }
+  }
+  return null;
+}
+
+/**
+ * (保留) 按候选路径列表查找首个存在的文件
  */
 function findExistingPath(candidates) {
   for (const relPath of candidates) {
