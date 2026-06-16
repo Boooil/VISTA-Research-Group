@@ -27,6 +27,25 @@ permalinks:
   publication: "/publication/:slug/"
   authors: "/author/:slug/"
 
+# Custom output: slug-manifest.json (URL slug → 内容文件夹名映射)
+# 供边缘渲染器 (functions/[[path]].js) 将真实 URL slug 解析回 GitHub 内容文件夹。
+# 详见 docs/edge-rendering-design.md 与 layouts/index.slugmanifest.json
+mediaTypes:
+  application/slug-manifest+json:
+    suffixes:
+      - json
+outputFormats:
+  SLUGMANIFEST:
+    mediaType: application/slug-manifest+json
+    baseName: slug-manifest
+    isPlainText: true
+    notAlternative: true
+outputs:
+  home:
+    - HTML
+    - RSS
+    - SLUGMANIFEST
+
 # Module configuration — HugoBlox via Hugo Modules
 module:
   hugoVersion:

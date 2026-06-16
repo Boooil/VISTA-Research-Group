@@ -1,0 +1,42 @@
+{{- /*
+  slug-manifest.json — URL slug → 内容文件夹名 映射
+
+  边缘渲染器 (functions/[[path]].js) 用真实 URL slug 反查 GitHub 内容文件夹。
+  因为 permalink 为 :slug 且内容无显式 slug:，Hugo 用「标题 urlize 后」作为 URL，
+  与源文件夹名 (如 TRVP / WangBoyu) 不一致。
+
+  结构:
+    {
+      "publication": { "<urlSlug>": "<folder>", ... },
+      "post":        { ... },
+      "project":     { ... },
+      "author":      { "<urlSlug>": "<folder|空>", ... }
+    }
+  author 值为空字符串表示该 URL 是无源文件夹的 taxonomy term → Function 回退到 Pages。
+*/ -}}
+{{- $pub := dict -}}
+{{- $post := dict -}}
+{{- $project := dict -}}
+{{- range site.RegularPages -}}
+  {{- if .File -}}
+    {{- $slug := path.Base (strings.TrimRight "/" .RelPermalink) -}}
+    {{- $folder := path.Base .File.Dir -}}
+    {{- if eq .Section "publication" -}}
+      {{- $pub = merge $pub (dict $slug $folder) -}}
+    {{- else if eq .Section "post" -}}
+      {{- $post = merge $post (dict $slug $folder) -}}
+    {{- else if eq .Section "project" -}}
+      {{- $project = merge $project (dict $slug $folder) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $author := dict -}}
+{{- range site.Pages -}}
+  {{- if and (eq .Kind "term") (hasPrefix .RelPermalink "/author/") -}}
+    {{- $slug := path.Base (strings.TrimRight "/" .RelPermalink) -}}
+    {{- $folder := "" -}}
+    {{- if .File -}}{{- $folder = path.Base .File.Dir -}}{{- end -}}
+    {{- $author = merge $author (dict $slug $folder) -}}
+  {{- end -}}
+{{- end -}}
+{{- dict "publication" $pub "post" $post "project" $project "author" $author | jsonify -}}

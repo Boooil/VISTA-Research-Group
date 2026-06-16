@@ -11,6 +11,7 @@
 import { createLogger } from './utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './renderer.js';
 import { parseMarkdown } from './frontmatter.js';
+import { resolveFolder } from './slug-map.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
@@ -68,7 +69,7 @@ export default {
       ]) {
         match = pathname.match(pattern);
         if (match) {
-          const result = await handleRoute(url, env, ctx, log, type, match[1], RENDERERS[type], startTime);
+          const result = await handleRoute(request, url, env, ctx, log, type, match[1], RENDERERS[type], startTime);
           return result;
         }
       }
@@ -116,7 +117,7 @@ export default {
 /**
  * 通用路由处理器
  */
-async function handleRoute(url, env, ctx, log, type, slug, renderFn, startTime) {
+async function handleRoute(request, url, env, ctx, log, type, slug, renderFn, startTime) {
   const cacheUrl = `${url.origin}/${type}/${slug}/`;
   const cache = caches.default;
 
@@ -136,26 +137,33 @@ async function handleRoute(url, env, ctx, log, type, slug, renderFn, startTime) 
     log.warn('Cache read failed, continuing', { message: err.message });
   }
 
-  log.info('Cache miss, rendering', { type, slug });
+  // 2. 解析真实内容文件夹名 (URL slug ≠ 文件夹名)
+  const { folder, known } = await resolveFolder(type, slug, url.origin, log);
+  if (!known || !folder) {
+    log.info('Slug not in manifest, passing through to Pages', { type, slug, known });
+    return passthroughToPages(request, log, { type, slug, reason: 'not-in-manifest' });
+  }
 
-  // 2. 动态渲染 (带计时)
+  log.info('Cache miss, rendering', { type, slug, folder });
+
+  // 3. 动态渲染 (带计时)
   const renderStart = Date.now();
   let result;
   try {
-    result = await renderFn({ slug, env, log });
+    result = await renderFn({ slug, folder, env, log });
   } catch (err) {
-    log.error('Render function threw', { type, slug, message: err.message, stack: err.stack, category: 'render' });
+    log.error('Render function threw', { type, slug, folder, message: err.message, stack: err.stack, category: 'render' });
     // 渲染异常也透传给 Pages
-    return passthroughToPages(url, log, { type, slug, reason: 'render-error', error: err.message });
+    return passthroughToPages(request, log, { type, slug, reason: 'render-error', error: err.message });
   }
 
   const renderTime = Date.now() - renderStart;
   const { html, status, cacheKey } = result;
 
-  // 3. 404 / 错误 → 透传给 Pages (可能 Pages 版本有内容)
+  // 4. 404 / 错误 → 透传给 Pages (可能 Pages 版本有内容)
   if (!html || status !== 200) {
     log.warn('Render failed or 404, passing through to Pages', { type, slug, status, renderTimeMs: renderTime });
-    return passthroughToPages(url, log, { type, slug, reason: status === 404 ? 'not-found' : 'render-failed', status });
+    return passthroughToPages(request, log, { type, slug, reason: status === 404 ? 'not-found' : 'render-failed', status });
   }
 
   // 4. 返回响应 + 异步写缓存
@@ -188,10 +196,11 @@ async function handleRoute(url, env, ctx, log, type, slug, renderFn, startTime) 
 
 /**
  * 透传到 Cloudflare Pages，带 fallback 标记
+ * 用原始 request 透传 (Worker Route 配置为不拦截 fetch(request) 的回源)
  */
-function passthroughToPages(url, log, context) {
+function passthroughToPages(request, log, context) {
   log.info('Falling back to Pages', context);
-  return fetch(url.toString());
+  return fetch(request);
 }
 
 // ============================================================================

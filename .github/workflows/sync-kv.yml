@@ -47,7 +47,7 @@ jobs:
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: 'extended'
+          hugo-version: '0.148.2'
           extended: true
 
       - name: Install edge-renderer deps

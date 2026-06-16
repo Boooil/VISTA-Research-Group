@@ -9,6 +9,7 @@
 
 import { createLogger } from './_lib/utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './_lib/renderer.js';
+import { resolveFolder } from './_lib/slug-map.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
@@ -64,7 +65,7 @@ export async function onRequest(context) {
     ]) {
       match = pathname.match(pattern);
       if (match) {
-        return handleRoute(url, env, waitUntil, log, type, match[1], RENDERERS[type], startTime);
+        return handleRoute(url, env, waitUntil, next, log, type, match[1], RENDERERS[type], startTime);
       }
     }
 
@@ -87,7 +88,7 @@ export async function onRequest(context) {
 /**
  * 通用路由处理器
  */
-async function handleRoute(url, env, waitUntil, log, type, slug, renderFn, startTime) {
+async function handleRoute(url, env, waitUntil, next, log, type, slug, renderFn, startTime) {
   const cacheUrl = `${url.origin}/${type}/${slug}/`;
   const cache = caches.default;
 
@@ -106,30 +107,31 @@ async function handleRoute(url, env, waitUntil, log, type, slug, renderFn, start
     log.warn('Cache read failed, continuing', { message: err.message });
   }
 
-  log.info('Cache miss, rendering', { type, slug });
+  // 2. 解析真实内容文件夹名 (URL slug ≠ 文件夹名)
+  const { folder, known } = await resolveFolder(type, slug, url.origin, log);
+  if (!known || !folder) {
+    // manifest 未命中 (如 author taxonomy term，或非内容页) → 回退静态资源
+    log.info('Slug not in manifest, passthrough to static', { type, slug, known });
+    return next();
+  }
 
-  // 2. 动态渲染
-  const renderStart = Date.now();
+  log.info('Cache miss, rendering', { type, slug, folder });
+
+  // 3. 动态渲染
   let result;
   try {
-    result = await renderFn({ slug, env, log });
+    result = await renderFn({ slug, folder, env, log });
   } catch (err) {
-    log.error('Render function threw', { type, slug, message: err.message, category: 'render' });
-    return new Response('Not Found', { status: 404 });
+    log.error('Render function threw', { type, slug, folder, message: err.message, category: 'render' });
+    return next();
   }
 
   const { html, status, cacheKey } = result;
 
-  // 3. 404 / 错误 → 尝试从 Pages 静态资源获取
+  // 4. 404 / 错误 → 回退 Pages 静态资源 (next() 取已构建的 Hugo 页面，避免自我递归)
   if (!html || status !== 200) {
-    log.warn('Render failed or 404, trying Pages origin', { type, slug, status });
-    try {
-      const originRes = await fetch(new URL(url.pathname, url.origin), { redirect: 'follow' });
-      if (originRes.ok) return originRes;
-    } catch (e) {
-      log.error('Origin fetch failed', { message: e.message });
-    }
-    return new Response('Not Found', { status: 404 });
+    log.warn('Render failed or 404, passthrough to static', { type, slug, folder, status });
+    return next();
   }
 
   // 4. 返回响应 + 异步写缓存
