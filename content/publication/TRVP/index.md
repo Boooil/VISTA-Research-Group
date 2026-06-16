@@ -1,5 +1,6 @@
 ---
 title: "TRVP: Transformer-VAE Framework for 3D Point Cloud Instance Segmentation"
+url_slug: TRVP
 content_type: publication
 authors:
   - Jiangmai Cheng

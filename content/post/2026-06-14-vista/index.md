@@ -1,5 +1,6 @@
 ---
 title: VISTA网站更新日志
+url_slug: 2026-06-14-vista
 date: 2026-06-15
 authors:
   - WangBoyu
