@@ -1,5 +1,5 @@
 ---
-title: VISTA网站更新日志
+title: VISTA网站更新日志2
 url_slug: Vista-update-6-17
 date: 2026-06-17
 authors:
