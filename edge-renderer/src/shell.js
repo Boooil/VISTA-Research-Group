@@ -12,10 +12,13 @@
 // ============================================================================
 
 const DOC_HEAD = `<!doctype html><html lang=en dir=ltr data-wc-theme-default=system><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=generator content="VISTA Edge Renderer"><meta name=description content="__META_DESC__"><link rel=alternate hreflang=en href=__CANONICAL_URL__>
-<link rel=stylesheet href=/css/themes/blue.min.css>
-<link rel=stylesheet href=/css/_entry.ac581f7c12cb784e2f8daae0a230a97dd057e01cd131509d3f32ea514a320423.css integrity="sha256-rFgffBLLeE4vjargojCpfdBX4BzRMVCdPzLqUUoyBCM=" crossorigin=anonymous>
-<link href=/css/custom.min.c7ec571ce6c7c322d60e989e095aa511431edc766ca5e8059a5a76b99b80e21d.css rel=stylesheet><script src=/js/hb-head.min.01cd73a09512f0fc45bed2c68f9f9a23041c57dafb87c91cf91373611031bd84.js integrity="sha256-Ac1zoJUS8PxFvtLGj5+aIwQcV9r7h8kc+RNzYRAxvYQ=" crossorigin=anonymous></script><link rel=icon type=image/png href=/media/icon_hu_fb1746b3b5524ac3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu_eac71196304f5a85.png><link rel=canonical href=__CANONICAL_URL__>
-<meta property="twitter:card" content="summary_large_image"><meta property="og:site_name" content="VISTA Research Group"><meta property="og:url" content="__CANONICAL_URL__"><meta property="og:title" content="__OG_TITLE__"><meta property="og:description" content="__OG_DESC__">__OG_IMAGE_TAGS____OG_TYPE_TAG__<meta property="og:locale" content="en">__PUBLISHED_TIME_TAG____MODIFIED_TIME_TAG__<title>__PAGE_TITLE__</title><style>@font-face{font-family:inter var;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dist/font/Inter.var.woff2)format(woff2)}</style><script defer src=/js/hugo-blox-en.min.65b31b94cb4f09cfd8f827efdb711400b677b90781e4aee753207d95de698687.js integrity="sha256-ZbMblMtPCc/Y+Cfv23EUALZ3uQeB5K7nUyB9ld5phoc="></script><script>console.log("✓ Alpine.js loading on demand")</script><script src=/dist/lib/alpinejs/cdn.min.e041f1b639d1e6b2fc2736d8d7638a409afcd444a6ec90446f8f4e44fa36f406.js integrity="sha256-4EHxtjnR5rL8JzbY12OKQJr81ESm7JBEb49ORPo29AY=" defer></script><script defer src=/js/hb-search.min.135366008264b9d452ff89aad28374bc7e4b40d2c047098318511786419873b0.js integrity="sha256-E1NmAIJkudRS/4mq0oN0vH5LQNLARwmDGFEXhkGYc7A="></script><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css crossorigin=anonymous referrerpolicy=no-referrer></head><body class="dark:bg-hb-dark dark:text-white page-wrapper" id=top><div id=page-bg></div>`;
+__HEAD_ASSETS__<link rel=canonical href=__CANONICAL_URL__>
+<meta property="twitter:card" content="summary_large_image"><meta property="og:site_name" content="VISTA Research Group"><meta property="og:url" content="__CANONICAL_URL__"><meta property="og:title" content="__OG_TITLE__"><meta property="og:description" content="__OG_DESC__">__OG_IMAGE_TAGS____OG_TYPE_TAG__<meta property="og:locale" content="en">__PUBLISHED_TIME_TAG____MODIFIED_TIME_TAG__<title>__PAGE_TITLE__</title><script>console.log("✓ Alpine.js loading on demand")</script></head><body class="dark:bg-hb-dark dark:text-white page-wrapper" id=top><div id=page-bg></div>`;
+
+// 硬编码资源标签 —— 仅作 fallback (运行时 getHeadAssets 抓取失败时使用)。
+// 注意: 带 hash 的路径会随构建漂移,可能过期；正常路径走运行时动态注入。
+const FALLBACK_HEAD_ASSETS = `<link rel=stylesheet href=/css/themes/blue.min.css>
+<link href=/css/custom.min.c7ec571ce6c7c322d60e989e095aa511431edc766ca5e8059a5a76b99b80e21d.css rel=stylesheet><script src=/js/hb-head.min.01cd73a09512f0fc45bed2c68f9f9a23041c57dafb87c91cf91373611031bd84.js crossorigin=anonymous></script><link rel=icon type=image/png href=/media/icon_hu_fb1746b3b5524ac3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu_eac71196304f5a85.png><style>@font-face{font-family:inter var;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dist/font/Inter.var.woff2)format(woff2)}</style><script defer src=/js/hugo-blox-en.min.65b31b94cb4f09cfd8f827efdb711400b677b90781e4aee753207d95de698687.js></script><script src=/dist/lib/alpinejs/cdn.min.e041f1b639d1e6b2fc2736d8d7638a409afcd444a6ec90446f8f4e44fa36f406.js defer></script><script defer src=/js/hb-search.min.135366008264b9d452ff89aad28374bc7e4b40d2c047098318511786419873b0.js></script><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css crossorigin=anonymous referrerpolicy=no-referrer>`;
 
 const NAV_BAR = `<div class=page-header><header id=site-header class=header><nav class="navbar px-3 flex justify-start"><div class="order-0 h-full"><a class=navbar-brand href=/ title="VISTA Research Group">VISTA Research Group</a></div><input id=nav-toggle type=checkbox class=hidden>
 <label for=nav-toggle class="order-3 cursor-pointer flex items-center lg:hidden text-dark dark:text-white lg:order-1"><svg id="show-button" class="h-6 fill-current block" viewBox="0 0 20 20"><title>Open Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0V0z"/></svg>
@@ -80,6 +83,7 @@ function applyShellReplacements(shell, {
   ogImage,
   currentYear,
   ogType = 'article',
+  headAssets,
 }) {
   const safeTitle = escapeHTML(title);
   const safeDesc = escapeHTML(description || '').substring(0, 300);
@@ -93,9 +97,12 @@ function applyShellReplacements(shell, {
   const modifiedTimeTag = modifiedTime
     ? `<meta property="article:modified_time" content="${escapeHTML(modifiedTime)}">`
     : '';
+  // 运行时动态注入真实资源；缺失时回退到内置(可能过期)的硬编码资源
+  const assets = (headAssets && headAssets.length > 0) ? headAssets : FALLBACK_HEAD_ASSETS;
 
   return shell
     .replace(/__CONTENT__/, content)
+    .replace(/__HEAD_ASSETS__/g, assets)
     .replace(/__CANONICAL_URL__/g, escapeHTML(canonicalUrl))
     .replace(/__META_DESC__/g, safeDesc)
     .replace(/__OG_TITLE__/g, `${safeTitle} | VISTA Research Group`)

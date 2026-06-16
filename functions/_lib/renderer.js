@@ -15,6 +15,7 @@ import { parseMarkdown } from './frontmatter.js';
 import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS } from './authors.js';
 import { formatDate, calcReadingTime, toISODate } from './utils.js';
 import { renderPageShell, renderAuthorShell } from './shell.js';
+import { getHeadAssets } from './head-assets.js';
 
 // 配置 marked
 marked.use({
@@ -235,6 +236,7 @@ export async function renderPublication({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
+    headAssets: await getHeadAssets(SITE_BASE_URL, log),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -345,6 +347,7 @@ export async function renderPost({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
+    headAssets: await getHeadAssets(SITE_BASE_URL, log),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -454,6 +457,7 @@ export async function renderProject({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
+    headAssets: await getHeadAssets(SITE_BASE_URL, log),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -523,6 +527,7 @@ export async function renderAuthor({ slug, folder, env, log }) {
     modifiedTime: '',
     ogImage: avatarUrl || '',
     currentYear,
+    headAssets: await getHeadAssets(SITE_BASE_URL, log),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
