@@ -11,7 +11,7 @@
 import { createLogger } from './utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './renderer.js';
 import { parseMarkdown } from './frontmatter.js';
-import { resolveFolder } from './slug-map.js';
+import { resolveFolder, resolveSlugByFolder } from './slug-map.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
@@ -210,8 +210,14 @@ function passthroughToPages(request, log, context) {
 /**
  * 处理 /__purge 缓存失效请求
  * 使用 GitHub Webhook HMAC-SHA256 签名验证
+ *
+ * 支持两种请求体：
+ *  1. GitHub push webhook payload（commits[].added/modified/removed）
+ *  2. 旧式 { path: "/post/xxx/" }（手动 purge）
  */
 async function handlePurge(request, env, ctx, log) {
+  const origin = new URL(request.url).origin;
+
   // 1. 验证 Webhook 签名
   const secret = env.WEBHOOK_SECRET;
   if (secret) {
@@ -224,32 +230,60 @@ async function handlePurge(request, env, ctx, log) {
       });
     }
   } else {
-    // 未配置 secret 时记录警告但允许通过 (开发环境)
     log.warn('WEBHOOK_SECRET not configured — purge endpoint is unprotected');
   }
 
-  // 2. 处理缓存清除
+  const cache = caches.default;
+
+  // GitHub 首次配置 webhook 的 ping 事件
+  const ghEvent = request.headers.get('X-GitHub-Event');
+  if (ghEvent === 'ping') {
+    log.info('Webhook ping received');
+    return new Response(JSON.stringify({ ok: true, pong: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const body = await request.json();
-    const { path } = body;
 
-    if (path) {
-      const cacheUrl = `https://vista-research-group.pages.dev${path}`;
-      const cache = caches.default;
-      const deleted = await cache.delete(cacheUrl);
-      log.info('Cache purge', { path, deleted });
+    // === 形态 1：GitHub push payload ===
+    if (Array.isArray(body.commits)) {
+      const paths = collectChangedFiles(body.commits);
+      const targets = paths.map(parseContentPath).filter(Boolean);
+      const seen = new Set();
+      const purged = [];
+      for (const { type, folder } of targets) {
+        const dedupKey = `${type}/${folder}`;
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
 
-      // 如果有 slug，也清除变体 URL (带/不带尾部斜杠)
-      // 从 path 中提取 type + slug 做变体清除
-      const altUrl = path.endsWith('/')
-        ? `https://vista-research-group.pages.dev${path.slice(0, -1)}`
-        : `https://vista-research-group.pages.dev${path}/`;
-      if (altUrl !== cacheUrl) {
-        await cache.delete(altUrl);
+        const urlSlug = await resolveSlugByFolder(type, folder, origin, log);
+        if (!urlSlug) {
+          log.info('Purge: slug not in manifest yet (new content?)', { type, folder });
+          continue;
+        }
+        const pagePath = `/${type}/${urlSlug}/`;
+        const deleted = await purgePage(cache, origin, pagePath, log);
+        purged.push({ type, folder, path: pagePath, deleted });
       }
+      log.info('Webhook purge complete', { count: purged.length });
+      return new Response(JSON.stringify({ purged: true, items: purged }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return new Response(JSON.stringify({ purged: true }), {
+    // === 形态 2：旧式 { path } 手动 purge ===
+    const { path } = body;
+    if (path) {
+      const deleted = await purgePage(cache, origin, path, log);
+      return new Response(JSON.stringify({ purged: true, path, deleted }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ purged: false, error: 'no path or commits in body' }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
@@ -259,6 +293,51 @@ async function handlePurge(request, env, ctx, log) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
+/**
+ * 收集 push payload 中所有变更文件路径 (added + modified + removed)
+ */
+function collectChangedFiles(commits) {
+  const files = new Set();
+  for (const c of commits) {
+    for (const list of [c.added, c.modified, c.removed]) {
+      if (Array.isArray(list)) {
+        for (const f of list) files.add(f);
+      }
+    }
+  }
+  return [...files];
+}
+
+/**
+ * 把内容文件路径解析为 { type, folder }
+ */
+function parseContentPath(filePath) {
+  const mAuthor = filePath.match(/^content\/authors\/([^/]+)\/_index\.md$/);
+  if (mAuthor) return { type: 'author', folder: mAuthor[1] };
+
+  const m = filePath.match(/^content\/(publication|post|project)\/([^/]+)\/index\.md$/);
+  if (m) return { type: m[1], folder: m[2] };
+
+  return null;
+}
+
+/**
+ * 删除某页面路径的边缘缓存 (含尾斜杠变体)
+ */
+async function purgePage(cache, origin, path, log) {
+  const cacheUrl = `${origin}${path}`;
+  const deleted = await cache.delete(cacheUrl);
+  log.info('Cache purge', { path, deleted });
+
+  const altUrl = path.endsWith('/')
+    ? `${origin}${path.slice(0, -1)}`
+    : `${origin}${path}/`;
+  if (altUrl !== cacheUrl) {
+    await cache.delete(altUrl);
+  }
+  return deleted;
 }
 
 /**

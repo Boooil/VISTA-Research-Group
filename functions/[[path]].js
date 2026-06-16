@@ -9,7 +9,7 @@
 
 import { createLogger } from './_lib/utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './_lib/renderer.js';
-import { resolveFolder } from './_lib/slug-map.js';
+import { resolveFolder, resolveSlugByFolder } from './_lib/slug-map.js';
 
 // 匹配详情页路径
 const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
@@ -164,9 +164,16 @@ async function handleRoute(url, env, waitUntil, next, log, type, slug, renderFn,
 
 /**
  * 处理 /__purge 缓存失效请求
+ *
+ * 支持两种请求体：
+ *  1. GitHub push webhook payload（含 commits[].added/modified/removed 文件路径）
+ *     → 解析受影响的内容页 → 删边缘缓存
+ *  2. 旧式 { path: "/post/xxx/" }（手动 purge，兼容保留）
  */
 async function handlePurge(request, env, waitUntil, log) {
-  // 验证 Webhook 签名 (如果配置了 WEBHOOK_SECRET)
+  const origin = new URL(request.url).origin;
+
+  // 验证 Webhook 签名
   const secret = env.WEBHOOK_SECRET;
   if (secret) {
     const verified = await verifyGitHubSignature(request, secret);
@@ -178,29 +185,63 @@ async function handlePurge(request, env, waitUntil, log) {
       });
     }
   } else {
+    // 生产环境应始终配置 secret；未配置时拒绝 GitHub 事件，仅允许本地手动 path purge
     log.warn('WEBHOOK_SECRET not configured — purge endpoint is unprotected');
+  }
+
+  const cache = caches.default;
+
+  // GitHub 首次配置 webhook 会发 ping 事件，无 commits → 回 200 让其显示成功
+  const ghEvent = request.headers.get('X-GitHub-Event');
+  if (ghEvent === 'ping') {
+    log.info('Webhook ping received');
+    return new Response(JSON.stringify({ ok: true, pong: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
     const body = await request.json();
-    const { path } = body;
 
-    if (path) {
-      const cacheUrl = `https://vista-research-group.pages.dev${path}`;
-      const cache = caches.default;
-      const deleted = await cache.delete(cacheUrl);
-      log.info('Cache purge', { path, deleted });
+    // === 形态 1：GitHub push payload ===
+    if (Array.isArray(body.commits)) {
+      const paths = collectChangedFiles(body.commits);
+      const targets = paths.map(parseContentPath).filter(Boolean);
+      // 去重 (type, folder)
+      const seen = new Set();
+      const purged = [];
+      for (const { type, folder } of targets) {
+        const dedupKey = `${type}/${folder}`;
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
 
-      // 清除变体 URL
-      const altUrl = path.endsWith('/')
-        ? `https://vista-research-group.pages.dev${path.slice(0, -1)}`
-        : `https://vista-research-group.pages.dev${path}/`;
-      if (altUrl !== cacheUrl) {
-        await cache.delete(altUrl);
+        const urlSlug = await resolveSlugByFolder(type, folder, origin, log);
+        if (!urlSlug) {
+          // 新文章：manifest 尚无映射，无既有缓存可删；交由 resolveFolder 兜底(改动 B)
+          log.info('Purge: slug not in manifest yet (new content?)', { type, folder });
+          continue;
+        }
+        const pagePath = `/${type}/${urlSlug}/`;
+        const deleted = await purgePage(cache, origin, pagePath, log);
+        purged.push({ type, folder, path: pagePath, deleted });
       }
+      log.info('Webhook purge complete', { count: purged.length });
+      return new Response(JSON.stringify({ purged: true, items: purged }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return new Response(JSON.stringify({ purged: true }), {
+    // === 形态 2：旧式 { path } 手动 purge ===
+    const { path } = body;
+    if (path) {
+      const deleted = await purgePage(cache, origin, path, log);
+      return new Response(JSON.stringify({ purged: true, path, deleted }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ purged: false, error: 'no path or commits in body' }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
@@ -210,6 +251,56 @@ async function handlePurge(request, env, waitUntil, log) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
+/**
+ * 收集 push payload 中所有变更文件路径 (added + modified + removed)
+ */
+function collectChangedFiles(commits) {
+  const files = new Set();
+  for (const c of commits) {
+    for (const list of [c.added, c.modified, c.removed]) {
+      if (Array.isArray(list)) {
+        for (const f of list) files.add(f);
+      }
+    }
+  }
+  return [...files];
+}
+
+/**
+ * 把内容文件路径解析为 { type, folder }。
+ * 仅匹配详情页内容文件，忽略其他文件。
+ *   content/publication/TRVP/index.md      → { type: 'publication', folder: 'TRVP' }
+ *   content/post/2026-x/index.md           → { type: 'post', folder: '2026-x' }
+ *   content/authors/WangBoyu/_index.md     → { type: 'author', folder: 'WangBoyu' }
+ */
+function parseContentPath(filePath) {
+  // authors 目录映射到 author 类型，且用 _index.md
+  const mAuthor = filePath.match(/^content\/authors\/([^/]+)\/_index\.md$/);
+  if (mAuthor) return { type: 'author', folder: mAuthor[1] };
+
+  const m = filePath.match(/^content\/(publication|post|project)\/([^/]+)\/index\.md$/);
+  if (m) return { type: m[1], folder: m[2] };
+
+  return null;
+}
+
+/**
+ * 删除某页面路径的边缘缓存 (含尾斜杠变体)
+ */
+async function purgePage(cache, origin, path, log) {
+  const cacheUrl = `${origin}${path}`;
+  const deleted = await cache.delete(cacheUrl);
+  log.info('Cache purge', { path, deleted });
+
+  const altUrl = path.endsWith('/')
+    ? `${origin}${path.slice(0, -1)}`
+    : `${origin}${path}/`;
+  if (altUrl !== cacheUrl) {
+    await cache.delete(altUrl);
+  }
+  return deleted;
 }
 
 /**

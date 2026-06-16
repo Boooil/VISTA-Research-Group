@@ -87,3 +87,22 @@ export async function resolveFolder(type, urlSlug, origin, log) {
 
   return { folder: null, known: false };
 }
+
+/**
+ * 反查：type + 文件夹名 → URL slug。
+ * 供 webhook purge 使用——push 只知道改动的文件夹名(content/<type>/<folder>/)，
+ * 需反推出页面 URL slug 才能删对应边缘缓存。
+ *
+ * @returns {Promise<string|null>} 命中返回 urlSlug，未命中返回 null
+ */
+export async function resolveSlugByFolder(type, folder, origin, log) {
+  const manifest = await loadManifest(origin, log);
+  if (!manifest || !manifest[type] || !folder) {
+    return null;
+  }
+  const table = manifest[type];
+  for (const [urlSlug, f] of Object.entries(table)) {
+    if (f === folder) return urlSlug;
+  }
+  return null;
+}
