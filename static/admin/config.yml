@@ -224,7 +224,7 @@ collections:
     label: "科研项目"
     label_singular: "科研项目"
     folder: "content/project"
-    path: "{{fields.url_slug}}/index"
+    path: "{{slug}}/index"
     create: true
     slug: "{{fields.url_slug}}"
     editor:
@@ -316,7 +316,7 @@ collections:
     label: "论文著作"
     label_singular: "论文著作"
     folder: "content/publication"
-    path: "{{fields.url_slug}}/index"
+    path: "{{slug}}/index"
     create: true
     slug: "{{fields.url_slug}}"
     editor:
