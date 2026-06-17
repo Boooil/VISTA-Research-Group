@@ -33,9 +33,10 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 
 ### 4. CMS 新建内容必须手填 `slug`(英文唯一短名)
 - Decap `encoding: ascii` 会把纯中文 title 剥空 → 路径畸形 → GitHub 报 `malformed path component`。
-- publication/project/post 都有必填 `slug` 字段(可见 string widget),pattern `^[a-z0-9][a-z0-9-]*$`(小写连字符)。`slug:` 模板用 `{{fields.slug}}`。
+- publication/project/post 都有必填 `slug` 字段,用自定义 `unique-slug` widget(`static/admin/slug-unique-widget.js`),pattern `^[a-z0-9][a-z0-9-]*$`。`slug:` 模板用 `{{fields.slug}}`。
 - **`path:` 必须用 `{{slug}}/index`,不能用 `{{fields.slug}}/index`**:Decap 的 `path` 模板对 `{{fields.X}}` 解析不可靠(issue #4787/#4092),会解析成空 → `content/publication//index.md` → GitHub `malformed path component`。`{{fields.X}}` 只放 `slug:` 里(稳定),`path` 引用 `{{slug}}`。
-- slug 字段同时决定 **URL** 和文件夹名;每篇必须唯一(撞了会覆盖)。新增内容文件 frontmatter 必须含 `slug`,否则 CMS 编辑会卡保存。
+- slug 字段同时决定 **URL** 和文件夹名;每篇必须唯一。新增内容文件 frontmatter 必须含 `slug`,否则 CMS 编辑会卡保存。
+- **slug 撞名是 Decap page bundle 已知缺陷**(issue #7606):重复 slug 不报错也不覆盖,而生成 `index-1.md` → Hugo 不渲染(网站无)、CMS 却列出幽灵 entry。防护两层:① `unique-slug` widget 新建时查 GitHub API 实时拦截(API 失败则降级放行);② `.github/workflows/content-sanity.yml` 巡检 `content/**/index-[0-9]*.md` 残留并让构建失败。本地手写内容也要保证 slug 唯一。
 - Decap 在浏览器缓存 config + 本地草稿:改 config 后需硬刷 `/admin/`;弹"加载本地备份"时别加载旧的坏草稿。
 
 ### 4b. 时区:CMS 本地时间 vs 构建机 UTC → 必须 `buildFuture: true`
@@ -88,5 +89,8 @@ node test/parse-test.js         # frontmatter 解析
 - CMS 配置(`static/admin/config.yml`)改动:部署后强刷 `/admin/` 才生效(Decap 缓存 config)。
 
 ## 设计文档
+
+设计文档统一放至docs/下。
+
 - `docs/edge-rendering-design.md` — 边缘渲染总体方案
 - `docs/phase3-realtime-plan.md` — 实时性(purge + 新文章 KV 映射)方案与进度

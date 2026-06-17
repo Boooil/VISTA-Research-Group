@@ -1,0 +1,59 @@
+# 内容健全性巡检 — 检测 page bundle 撞名残留 (index-N.md)
+#
+# 背景:Decap CMS 对 page bundle (path: {{slug}}/index) 重复 slug 不报错,
+# 而是生成 index-1.md(issue #7606),破坏 Hugo bundle:网站不显示、CMS 却列出。
+# CMS 端已有 unique-slug widget 事前拦截;本巡检作兜底——
+# 捕获本地 push 或 widget 降级(GitHub API 限流)时漏进的残留。
+
+name: Content Sanity Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/**'
+  workflow_dispatch:
+
+jobs:
+  check-bundle-residue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect index-N.md residue (slug 撞名产物)
+        run: |
+          # page bundle 内除 index.md/_index.md 外不应有 index-<数字>.md
+          residue=$(find content -type f \( -name 'index-[0-9]*.md' -o -name '_index-[0-9]*.md' \) 2>/dev/null || true)
+          if [ -n "$residue" ]; then
+            echo "::error::发现 page bundle 撞名残留文件(slug 重复导致),这些文件不会被网站显示:"
+            echo "$residue" | while read -r f; do echo "  ✗ $f"; done
+            {
+              echo "### ❌ 检测到 slug 撞名残留"
+              echo ""
+              echo "以下文件是 Decap 对重复 slug 生成的 \`index-N.md\`,Hugo 不会渲染,需手动处理(改 slug 或删除):"
+              echo ""
+              echo '```'
+              echo "$residue"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "✓ 无 index-N.md 残留,page bundle 结构正常"
+
+      - name: Detect bundle with multiple markdown (额外保险)
+        run: |
+          # 每个内容文件夹应只有一个主 md(index.md 或 _index.md)
+          bad=0
+          while IFS= read -r dir; do
+            count=$(find "$dir" -maxdepth 1 -type f \( -name 'index*.md' -o -name '_index*.md' \) | wc -l)
+            if [ "$count" -gt 1 ]; then
+              echo "::warning::$dir 含 $count 个 index/_index markdown(可能撞名):"
+              find "$dir" -maxdepth 1 -type f \( -name 'index*.md' -o -name '_index*.md' \) | sed 's/^/    /'
+              bad=1
+            fi
+          done < <(find content -type d)
+          [ "$bad" -eq 0 ] && echo "✓ 每个内容文件夹仅一个主 markdown"
+          # 此步仅告警不失败(上一步已对 index-N 强制失败)
+          exit 0
