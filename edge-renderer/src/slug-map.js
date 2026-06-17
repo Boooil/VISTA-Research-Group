@@ -189,3 +189,65 @@ export async function writeSlugMapping(kv, type, title, folder, log) {
 }
 
 export { slugMapKey };
+
+// ============================================================================
+// 待建清单 (问题 1): 新发布但可能未进静态列表的条目,供列表页注入"最新发布"横幅
+// ============================================================================
+
+const PENDING_TTL_SEC = 3600; // 1h,够撑到 Hugo 构建追上
+const PENDING_MAX = 20;        // 每类型最多保留的待建条目数
+
+function pendingKey(type) {
+  return `pending:${type}`;
+}
+
+/**
+ * 读取某类型的待建清单
+ * @returns {Promise<Array<{slug,title,date}>>}
+ */
+export async function getPending(kv, type, log) {
+  if (!kv) return [];
+  try {
+    const arr = await kv.get(pendingKey(type), 'json');
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    log?.warn?.('getPending failed', { type, message: e.message });
+    return [];
+  }
+}
+
+/**
+ * upsert 一条待建条目(按 slug 去重,新的在前)
+ */
+export async function addPending(kv, type, entry, log) {
+  if (!kv || !entry?.slug) return;
+  try {
+    const list = await getPending(kv, type, log);
+    const filtered = list.filter(e => e.slug !== entry.slug);
+    const next = [{ slug: entry.slug, title: entry.title || entry.slug, date: entry.date || '' }, ...filtered].slice(0, PENDING_MAX);
+    await kv.put(pendingKey(type), JSON.stringify(next), { expirationTtl: PENDING_TTL_SEC });
+    log?.info?.('addPending', { type, slug: entry.slug, count: next.length });
+  } catch (e) {
+    log?.warn?.('addPending failed', { type, message: e.message });
+  }
+}
+
+/**
+ * 从待建清单移除若干 slug(删除事件,或构建已追上时清理)
+ */
+export async function removePending(kv, type, slugs, log) {
+  if (!kv || !slugs?.length) return;
+  try {
+    const list = await getPending(kv, type, log);
+    const set = new Set(slugs);
+    const next = list.filter(e => !set.has(e.slug));
+    if (next.length === list.length) return; // 无变化
+    await kv.put(pendingKey(type), JSON.stringify(next), { expirationTtl: PENDING_TTL_SEC });
+    log?.info?.('removePending', { type, removed: list.length - next.length });
+  } catch (e) {
+    log?.warn?.('removePending failed', { type, message: e.message });
+  }
+}
+
+export { pendingKey };
+

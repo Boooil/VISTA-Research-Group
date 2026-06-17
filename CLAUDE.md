@@ -48,9 +48,11 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 - 后果:中国凌晨打开表单(本地已跨天但 date 字段/提交是另一天)→ 文件夹日期前缀比 date 字段落后/超前一天(实测 `date:2026-06-17` 却生成 `2026-06-16-xxx`)。
 - 已改用 filter 语法 `{{fields.date | date('YYYY-MM-DD')}}`(commit #6690 的 filter 支持)直接从 date 字段取,文件夹日期 = 用户选的日期,与时区/表单打开时刻无关。别改回内置 tag。
 
-### 4c. 列表页/首页是 Hugo 产物,与边缘渲染无关,有 40-60s 构建窗口
-- 边缘渲染器**只接管详情页**(`/publication|post|project|author/<slug>/`),列表页 `/publication/`、首页、sitemap 一律透传 Pages 静态产物。
-- 新文章详情页**秒级可见**(边缘渲染),但出现在**列表页要等 Hugo 构建完成**(40-60s)。这是设计文档的「双重渲染窗口」,不是 bug。
+### 4c. 列表页/首页是 Hugo 产物;列表页用"最新发布"横幅补实时入口
+- 边缘渲染器**只完整接管详情页**;列表页 `/publication|post|project/`、首页、sitemap 仍是 Hugo 构建产物。
+- 新文章详情页**秒级可见**;正式列表卡片要等 Hugo 构建(40-60s)。为补这段窗口,Worker 拦截三个列表页,在顶部注入"🆕 最新发布"横幅(`handleListPage` + `buildPendingBanner`),列出已发布但未进静态列表的条目链接(指向秒级可见的详情页)。
+- 数据源:webhook 每次 push 把新内容 upsert 进 KV `pending:<type>`(`addPending`),**不按访客查 GitHub**(避开 60/h 限流)。构建追上后,列表页拦截发现该 slug 已在静态 HTML 中 → `removePending` 自清理,横幅自动消失。
+- 横幅是**链接列表,非复刻卡片**(项目卡片依赖 Hugo 图片/term 管线,Worker 不复刻)。首页 block、author 列表不做。
 - 排查"列表页缺文章"时:别凭单条 grep 下结论(易被 CDN 缓存/中文目录名误导),用唯一链接计数 + sitemap + 探针对照实验交叉印证。
 
 

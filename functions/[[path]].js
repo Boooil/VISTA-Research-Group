@@ -9,7 +9,7 @@
 
 import { createLogger } from './_lib/utils.js';
 import { renderPublication, renderPost, renderProject, renderAuthor } from './_lib/renderer.js';
-import { resolveFolder, resolveSlugByFolder, writeSlugMapping } from './_lib/slug-map.js';
+import { resolveFolder, resolveSlugByFolder, writeSlugMapping, addPending, removePending, getPending } from './_lib/slug-map.js';
 import { parseMarkdown } from './_lib/frontmatter.js';
 
 // 匹配详情页路径
@@ -17,6 +17,9 @@ const PUBLICATION_PATTERN = /^\/publication\/([^/]+)\/?$/;
 const POST_PATTERN = /^\/post\/([^/]+)\/?$/;
 const PROJECT_PATTERN = /^\/project\/([^/]+)\/?$/;
 const AUTHOR_PATTERN = /^\/author\/([^/]+)\/?$/;
+
+// 匹配列表页路径(注入"最新发布"横幅)
+const LIST_PATTERN = /^\/(publication|post|project)\/?$/;
 
 // 管理端点
 const PURGE_PATTERN = /^\/__purge\/?$/;
@@ -68,6 +71,12 @@ export async function onRequest(context) {
       if (match) {
         return handleRoute(url, env, waitUntil, next, log, type, match[1], RENDERERS[type], startTime);
       }
+    }
+
+    // === 列表页: 注入"最新发布"横幅 ===
+    const listMatch = pathname.match(LIST_PATTERN);
+    if (listMatch) {
+      return handleListPage(env, next, log, listMatch[1]);
     }
 
     // === 未匹配路由 → 透传给静态资源 ===
@@ -165,6 +174,84 @@ async function handleRoute(url, env, waitUntil, next, log, type, slug, renderFn,
 }
 
 /**
+ * 列表页处理:取 Pages 静态列表 → 读 KV 待建清单 → 过滤掉已进静态列表的 slug
+ * → 把"真·未构建"的条目注入顶部"最新发布"横幅。无待建则原样返回。
+ */
+async function handleListPage(env, next, log, type) {
+  const res = await next();
+
+  // 只处理 HTML
+  const ct = res.headers.get('Content-Type') || '';
+  if (!ct.includes('text/html')) return res;
+
+  let pending;
+  try {
+    pending = await getPending(env.AUTHORS, type, log);
+  } catch {
+    return res;
+  }
+  if (!pending || pending.length === 0) return res;
+
+  const html = await res.text();
+
+  // 过滤:已出现在静态列表里的 slug → 构建已追上,清理待建清单
+  const fresh = [];
+  const caughtUp = [];
+  for (const e of pending) {
+    const href = `/${type}/${e.slug}/`;
+    if (html.includes(href) || html.includes(encodeURIComponent(e.slug))) {
+      caughtUp.push(e.slug);
+    } else {
+      fresh.push(e);
+    }
+  }
+  if (caughtUp.length) {
+    // 异步清理(不阻塞响应)
+    removePending(env.AUTHORS, type, caughtUp, log).catch(() => {});
+  }
+
+  if (fresh.length === 0) {
+    return new Response(html, res);
+  }
+
+  const banner = buildPendingBanner(type, fresh);
+  // 注入到列表条目容器之前
+  const anchor = '<div class="flex flex-col items-center">';
+  const idx = html.indexOf(anchor);
+  const injected = idx >= 0
+    ? html.slice(0, idx) + banner + html.slice(idx)
+    : html.replace(/<\/main>/i, banner + '</main>');
+
+  const headers = new Headers(res.headers);
+  headers.delete('Content-Length');
+  headers.set('X-Edge-List-Banner', String(fresh.length));
+  return new Response(injected, { status: res.status, headers });
+}
+
+/**
+ * 构建"最新发布"横幅 HTML(极简,不复刻卡片;链接指向秒级可见的详情页)
+ */
+function buildPendingBanner(type, items) {
+  const rows = items.map(e => {
+    const href = `/${type}/${encodeURIComponent(e.slug)}/`;
+    const dateStr = e.date ? `<span class="text-xs text-gray-400 ml-2">${escapeAttr(e.date)}</span>` : '';
+    return `<li class="py-1.5"><a href="${href}" class="text-primary-600 hover:underline dark:text-primary-400">${escapeAttr(e.title)}</a>${dateStr}</li>`;
+  }).join('');
+
+  return `<div class="max-w-prose mx-auto px-6 md:px-0 mb-8">
+  <div class="rounded-xl border border-primary-200 dark:border-primary-800 bg-primary-50/60 dark:bg-primary-900/20 px-5 py-4">
+    <div class="flex items-center gap-2 mb-2"><span>🆕</span><span class="font-semibold text-gray-800 dark:text-gray-100">最新发布</span><span class="text-xs text-gray-500 dark:text-gray-400">（刚发布，完整卡片将在站点构建完成后出现）</span></div>
+    <ul class="list-none m-0 p-0">${rows}</ul>
+  </div>
+</div>`;
+}
+
+function escapeAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
  * 处理 /__purge 缓存失效请求
  *
  * 支持两种请求体：
@@ -215,26 +302,31 @@ async function handlePurge(request, env, waitUntil, log) {
 
       const results = [];
 
-      // 新增/修改：拉 index.md → 解析 title → 写 KV slug 映射(新文章兜底) + 清缓存
+      // 新增/修改：拉 index.md → 解析 → 写 KV slug 映射 + 待建清单 + 清缓存
       for (const { type, folder } of changedTargets) {
-        const slug = await syncContentMapping(type, folder, env, origin, log);
-        if (slug) {
-          // 缓存 key 用 percent-encoded slug(与 handleRoute 的 url.pathname 一致)
+        const meta = await syncContentMapping(type, folder, env, origin, log);
+        if (meta) {
+          const { slug, title, date } = meta;
           const pagePath = `/${type}/${encodeURIComponent(slug)}/`;
           const deleted = await purgePage(cache, origin, pagePath, log);
+          // 列表横幅只覆盖三个列表型,author 不做
+          if (type === 'publication' || type === 'post' || type === 'project') {
+            await addPending(env.AUTHORS, type, { slug, title, date }, log);
+          }
           results.push({ type, folder, slug, action: 'upsert', deleted });
         } else {
           log.warn('Could not resolve slug for changed content', { type, folder });
         }
       }
 
-      // 删除：用 manifest 反查 slug 清缓存(已被删的页)
+      // 删除：用 manifest 反查 slug 清缓存 + 从待建清单移除
       for (const { type, folder } of removedTargets) {
         const urlSlug = await resolveSlugByFolder(type, folder, origin, log);
         if (urlSlug) {
-          // manifest key 已是 percent-encoded,直接用
           const pagePath = `/${type}/${urlSlug}/`;
           const deleted = await purgePage(cache, origin, pagePath, log);
+          const decoded = decodeURIComponent(urlSlug);
+          await removePending(env.AUTHORS, type, [decoded, urlSlug], log);
           results.push({ type, folder, action: 'remove', deleted });
         }
       }
@@ -332,9 +424,10 @@ async function syncContentMapping(type, folder, env, origin, log) {
       log.warn('syncContentMapping: no slug/title', { type, folder });
       return null;
     }
-    // 写 KV 即时映射 + 返回 slug
+    // 写 KV 即时映射 + 返回 slug 与展示元数据(供待建清单)
     const slug = await writeSlugMapping(env.AUTHORS, type, slugSource, folder, log);
-    return slug;
+    if (!slug) return null;
+    return { slug, title: frontmatter.title || slug, date: frontmatter.date || '' };
   } catch (e) {
     log.error('syncContentMapping error', { type, folder, message: e.message });
     return null;
