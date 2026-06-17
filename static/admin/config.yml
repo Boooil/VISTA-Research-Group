@@ -148,8 +148,8 @@ collections:
     folder: "content/post"
     path: "{{slug}}/index"
     create: true
-    slug: "{{year}}-{{month}}-{{day}}-{{fields.slug}}"
-    summary: "{{year}}-{{month}}-{{day}} — {{title}}"
+    slug: "{{fields.date | date('YYYY-MM-DD')}}-{{fields.slug}}"
+    summary: "{{fields.date | date('YYYY-MM-DD')}} — {{title}}"
     editor:
       preview: true
     filter:
