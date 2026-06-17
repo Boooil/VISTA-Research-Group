@@ -43,6 +43,11 @@ CMS(Decap) ──push──▶ GitHub main ──┬──▶ Cloudflare Pages �
 - 中国时间下午(UTC 当天未到)发的文,`date` 会超前 UTC 一天,被 Hugo 默认判为"未来日期"**跳过**→ 详情页(边缘渲染,不查日期)可见,但列表页/sitemap(Hugo)缺失。
 - `config/_default/hugo.yaml` 已设 `buildFuture: true` 根治。**实测 `timeZone: Asia/Shanghai` 无效**(Hugo 对纯日期 future 判定不吃 timeZone),别改回去。本站无定时发布需求。
 
+### 4b-2. post 的 slug 日期前缀必须用 `{{fields.date | date('YYYY-MM-DD')}}`,不能用 `{{year}}-{{month}}-{{day}}`
+- 内置 `{{year}}/{{month}}/{{day}}` 在线上 Decap 版本(未含 fix #7633)取的是**"打开新建表单那一刻"的时间**,不是 date 字段值。
+- 后果:中国凌晨打开表单(本地已跨天但 date 字段/提交是另一天)→ 文件夹日期前缀比 date 字段落后/超前一天(实测 `date:2026-06-17` 却生成 `2026-06-16-xxx`)。
+- 已改用 filter 语法 `{{fields.date | date('YYYY-MM-DD')}}`(commit #6690 的 filter 支持)直接从 date 字段取,文件夹日期 = 用户选的日期,与时区/表单打开时刻无关。别改回内置 tag。
+
 ### 4c. 列表页/首页是 Hugo 产物,与边缘渲染无关,有 40-60s 构建窗口
 - 边缘渲染器**只接管详情页**(`/publication|post|project|author/<slug>/`),列表页 `/publication/`、首页、sitemap 一律透传 Pages 静态产物。
 - 新文章详情页**秒级可见**(边缘渲染),但出现在**列表页要等 Hugo 构建完成**(40-60s)。这是设计文档的「双重渲染窗口」,不是 bug。
