@@ -1,6 +1,6 @@
 ---
 title: "Claude Fable 5：Anthropic 迈向 Mythos 级智能的里程碑"
-slug: 2026-06-10-claude-fable5
+slug: claude-fable5
 content_type: post
 date: 2026-06-10
 authors:

@@ -1,6 +1,6 @@
 ---
 title: CMS后台编辑更改测试
-slug: 2026-06-10-cms
+slug: cms
 date: 2026-06-11
 authors:
   - WangBoyu

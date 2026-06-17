@@ -89,7 +89,7 @@ image:                # 可选
 正文 Markdown。
 ```
 
-> 注：post 的 URL 会带日期前缀 → `/post/2026-06-17-my-update/`（slug 为 `my-update` 时）。本地建议文件夹名也用 `2026-06-17-my-update` 保持一致。
+> 注：post 与 publication/project 一致——文件夹名 = slug = URL（如 `/post/my-update/`，不带日期前缀）。日期信息在 frontmatter `date:` 字段里，用于排序/显示。本地建文件夹名直接用 slug 即可。
 
 ### project（科研项目）
 

@@ -1,6 +1,6 @@
 ---
 title: "3D Battlefield Local Update Benchmark"
-slug: 2026-06-10-3d-blu-benchmark
+slug: 3d-blu-benchmark
 content_type: post
 date: 2026-06-10
 authors:
