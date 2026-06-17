@@ -371,6 +371,13 @@ collections:
       - label: "摘要"
         name: "abstract"
         widget: "text"
+      - label: "BibTeX 引用 (cite.bib)"
+        name: "cite_file"
+        widget: "file"
+        required: false
+        media_folder: ""
+        public_folder: ""
+        hint: "先填好上方「URL 标识」再上传；上传的文件名必须为 cite.bib（详情页 Cite 按钮会复制其内容）"
       - label: "标签"
         name: "tags"
         widget: "list"

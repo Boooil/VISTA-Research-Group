@@ -90,7 +90,8 @@ node test/parse-test.js         # frontmatter 解析
 
 ## 设计文档
 
-设计文档统一放至docs/下。
+plan 批准、退出 plan 模式后,将最终设计方案沉淀为 `docs/` 下的文档(plan 模式本身只能写系统指定的 plan 文件,无法写 docs,故须在实现阶段补写)。
 
 - `docs/edge-rendering-design.md` — 边缘渲染总体方案
 - `docs/phase3-realtime-plan.md` — 实时性(purge + 新文章 KV 映射)方案与进度
+- `docs/cite-bib-design.md` — cite.bib 上传(CMS file 字段)+ Cite 复制到剪贴板

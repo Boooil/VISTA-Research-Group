@@ -82,8 +82,9 @@ function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
 
 /**
  * 渲染链接按钮 (通用)
+ * @param citeBib publication 的 cite.bib 文本内容(有则渲染"复制"组件,无则不显示 Cite)
  */
-function renderLinksHTML(links, slug, type, owner, repo, branch) {
+function renderLinksHTML(links, slug, type, owner, repo, branch, citeBib) {
   const buttons = [];
 
   // 来自 frontmatter 的显式链接
@@ -95,10 +96,9 @@ function renderLinksHTML(links, slug, type, owner, repo, branch) {
     }
   }
 
-  // Cite.bib 链接 (仅 publication)
-  if (type === 'publication' && slug) {
-    const citeBibUrl = `/publication/${slug}/cite.bib`;
-    buttons.push(linkButton('Cite', citeBibUrl, 'cite'));
+  // Cite (仅 publication 且有 cite.bib 内容):点击复制 BibTeX 到剪贴板
+  if (type === 'publication' && citeBib && citeBib.trim()) {
+    buttons.push(citeCopyButton(citeBib));
   }
 
   if (buttons.length === 0) return '';
@@ -114,6 +114,24 @@ function linkButton(label, url, icon) {
   };
   const svg = svgMap[icon] || svgMap.default;
   return `<a class="hb-attachment-link hb-attachment-link-large inline-flex items-center gap-1 mr-2" href="${url}" target="_blank" rel="noopener">${svg}<span>${escapeHTML(label)}</span></a>`;
+}
+
+/**
+ * Cite 复制按钮:点击把 BibTeX 内容复制到剪贴板(无 fetch、无 404)。
+ * bib 原文内联进隐藏 <template>,JS 读取并 navigator.clipboard.writeText。
+ * 自包含(内联 onclick),边缘版与静态版可共用同款标记。
+ */
+function citeCopyButton(bib) {
+  const svg = `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75A1.125 1.125.0 013.75 20.625V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06.0 011.5.124m7.5 10.376h3.375c.621.0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06.0 00-1.5-.124H9.375c-.621.0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375A1.125 1.125.0 018.25 16.125v-9.25m12 6.625v-1.875A3.375 3.375.0 0016.875 8.25h-1.5A1.125 1.125.0 0114.25 7.125v-1.5A3.375 3.375.0 0010.875 2.25H9.75"/></svg>`;
+  // bib 内容放进 <script type="text/bibtex">(不执行、不需 HTML 转义正文,只须防 </script>)
+  const safeBib = String(bib).replace(/<\/script>/gi, '<\\/script>');
+  return `<span class="hb-cite-copy inline-flex items-center mr-2">` +
+    `<script type="text/bibtex" class="hb-cite-data">${safeBib}</script>` +
+    `<button type="button" class="hb-attachment-link hb-attachment-link-large inline-flex items-center gap-1 cursor-pointer" ` +
+    `onclick="(function(b){var d=b.parentNode.querySelector('.hb-cite-data').textContent;` +
+    `navigator.clipboard.writeText(d).then(function(){var s=b.querySelector('.hb-cite-label');var o=s.textContent;s.textContent='已复制 ✓';setTimeout(function(){s.textContent=o;},1500);})` +
+    `.catch(function(){var s=b.querySelector('.hb-cite-label');s.textContent='复制失败';});})(this)">` +
+    `${svg}<span class="hb-cite-label">Cite</span></button></span>`;
 }
 
 /**
@@ -190,9 +208,10 @@ export async function renderPublication({ slug, folder, env, log }) {
   const publicationVenue = frontmatter.publication || '';
   const abstract = frontmatter.abstract || frontmatter.summary || '';
 
-  // 7. 链接按钮
+  // 7. 链接按钮 + Cite(取同目录 cite.bib 内容,有则渲染复制按钮)
   const links = frontmatter.links || [];
-  const linksHTML = renderLinksHTML(links, slug, 'publication', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+  const { mdText: citeBib } = await fetchMarkdown(`${contentDir}cite.bib`, env);
+  const linksHTML = renderLinksHTML(links, slug, 'publication', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, citeBib);
 
   // 8. 封面图
   const featuredImage = frontmatter.image?.filename || '';
