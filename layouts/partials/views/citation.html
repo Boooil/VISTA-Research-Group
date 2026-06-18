@@ -1,0 +1,60 @@
+{{/*
+  覆盖主题 _partials/views/citation.html —— 列表页(citation 视图)单条目渲染。
+
+  与主题原版一致,额外补一个 cite-copy 按钮:
+  本站 cite.bib 由 frontmatter `cite` 字段经 BIBTEX output 生成(非 page resource),
+  主题的 has_attachments / build_links 靠 .Resources.GetMatch "cite.bib" 检测资源文件,
+  检测不到 → 列表页 Cite 按钮消失。这里独立于 has_attachments 补一个主题同款
+  js-cite-clipboard 按钮(复用 hb-citation.js)。详见 docs/cite-bib-design.md
+*/}}
+{{ $item := .item }}
+{{ $has_attachments := partial "functions/has_attachments" $item }}
+{{ $has_cite := $item.Params.cite }}
+
+<div class="pub-list-item view-citation" style="margin-bottom: 1rem">
+  <i class="far fa-file-alt pub-icon" aria-hidden="true"></i>
+
+  {{/* APA Style */}}
+  {{ if eq (site.Params.publications.citation_style | default "apa") "apa" }}
+
+  <span class="article-metadata li-cite-author">
+    {{ partial "page_metadata_authors" $item }}
+  </span>
+  ({{- $item.Date.Format "2006" -}}).
+  <a href="{{ $item.RelPermalink }}" class="underline">{{ $item.Title }}</a>.
+  {{ if $item.Params.publication_short }}
+    {{- $item.Params.publication_short | markdownify -}}.
+  {{ else if $item.Params.publication }}
+    {{- $item.Params.publication | markdownify -}}.
+  {{ end }}
+
+  {{ if or $has_attachments $has_cite }}
+  <div class="flex flex-wrap space-x-3">
+    {{ partial "page_links" (dict "page" $item "is_list" 1) }}
+    {{ partial "views/citation--cite-button" $item }}
+  </div>
+  {{ end }}
+
+  {{/* MLA Style */}}
+  {{ else }}
+
+  <span class="article-metadata li-cite-author">
+    {{ partial "page_metadata_authors" $item }}.
+  </span>
+  <a href="{{ $item.RelPermalink }}">{{ $item.Title }}</a>.
+  {{ if $item.Params.publication_short }}
+    {{- $item.Params.publication_short | markdownify -}},
+  {{ else if $item.Params.publication }}
+    {{- $item.Params.publication | markdownify -}},
+  {{ end }}
+  {{- $item.Date.Format "2006" -}}.
+
+  {{ if or $has_attachments $has_cite }}
+  <div class="flex flex-wrap space-x-3">
+    {{ partial "page_links" (dict "page" $item "is_list" 1) }}
+    {{ partial "views/citation--cite-button" $item }}
+  </div>
+  {{ end }}
+
+  {{ end }}
+</div>

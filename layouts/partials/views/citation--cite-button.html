@@ -1,0 +1,13 @@
+{{/*
+  共享 Cite 复制按钮 —— 列表页 citation 视图与详情页 single.html 复用。
+  仅当 frontmatter `cite` 非空时渲染。cite.bib 由 BIBTEX output 生成于
+  <RelPermalink>cite.bib,主题 hb-citation.js(无条件打包)点击 fetch 并复制。
+  接收 page 对象(.)。
+*/}}
+{{ with .Params.cite }}
+{{ $citeURL := printf "%scite.bib" $.RelPermalink }}
+<button class="hb-attachment-link hb-attachment-link-small js-cite-clipboard cursor-pointer inline-flex items-center gap-1" type="button" data-filename="{{ $citeURL }}">
+  {{ partial "functions/get_icon" (dict "name" "hero/document-duplicate" "attributes" "style=\"height: 1em\" class='inline-block'") }}
+  <span>{{ i18n "btn_cite" | default "Cite" }}</span>
+</button>
+{{ end }}

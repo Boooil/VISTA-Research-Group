@@ -29,7 +29,12 @@ publication 详情页 Cite 按钮。需求:① CMS 能添加 bib(粘贴文本 **
 
 ## 现状与第二步
 - ✅ CMS 粘贴/导入、边缘版 Cite 复制、cite.bib 构建生成,均已实现并测试。
-- ✅ **第二步(已完成)**:Hugo 静态页 Cite 也改为复制。关键发现:HugoBlox 主题**原生支持** cite 复制(`page_links.html` 对 bibtex 渲染 `.js-cite-clipboard` 按钮 + `hb-citation.js` 点击 fetch data-filename 复制,JS 无条件打包)。但主题靠 `.Resources.GetMatch "cite.bib"` 检测**资源文件**,而本方案 cite.bib 是 BIBTEX output(非 resource)→ 主题检测不到。解决:在 `layouts/publication/single.html` 补一个主题同款 `.js-cite-clipboard` 按钮(`data-filename` 指向生成的 cite.bib URL),复用主题 JS,不覆盖 build_links(避免影响 PDF/DOI)。边缘版与静态版行为一致(均点击复制)。
+- ✅ **第二步(已完成)**:Hugo 静态页 Cite 也改为复制。关键发现:HugoBlox 主题**原生支持** cite 复制(`page_links.html` 对 bibtex 渲染 `.js-cite-clipboard` 按钮 + `hb-citation.js` 点击 fetch data-filename 复制,JS 无条件打包)。但主题靠 `.Resources.GetMatch "cite.bib"` 检测**资源文件**,而本方案 cite.bib 是 BIBTEX output(非 resource)→ 主题检测不到。解决:补主题同款 `.js-cite-clipboard` 按钮(`data-filename` 指向生成的 cite.bib URL),复用主题 JS,不覆盖 build_links(避免影响 PDF/DOI)。
+- **详情页 + 列表页都要补**(主题检测失效同时影响两处):
+  - 详情页:`layouts/publication/single.html` 调共享 partial。
+  - 列表页:覆盖 citation 视图 `layouts/partials/views/citation.html`,补按钮;**独立于 `has_attachments`**(否则只有 cite、无 PDF/DOI 的论文整个链接区被跳过)。
+  - 共享按钮 partial:`layouts/partials/views/citation--cite-button.html`(单一来源,两处复用,行为一致)。
+- 边缘版与静态版(详情页 + 列表页)Cite 行为全部一致:点击复制。
 
 ## 验证
 - bib 保真:解析器离线验证 + 构建生成的 7 篇 cite.bib 与原文内容一致(仅末尾换行差异,无实质)。
