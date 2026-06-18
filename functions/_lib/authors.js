@@ -41,21 +41,19 @@ export async function resolveAuthors(authorNames, authorNotes, kv, githubPath = 
   // 批量查询 KV (如果可用)
   const authorDataMap = {};
   for (const name of authorNames) {
-    // 先检查硬编码 defaults
+    // KV 优先（包含 CMS 最新数据），DEFAULT_AUTHORS 作为兜底
+    try {
+      const kvData = kv && await kv.get(`author:${name}`, 'json');
+      if (kvData) {
+        authorDataMap[name] = kvData;
+        continue;
+      }
+    } catch (e) {
+      // KV 不可用，跳过
+    }
     if (DEFAULT_AUTHORS[name]) {
       authorDataMap[name] = DEFAULT_AUTHORS[name];
     } else {
-      // 尝试从 KV 获取
-      try {
-        const kvData = await kv.get(`author:${name}`, 'json');
-        if (kvData) {
-          authorDataMap[name] = kvData;
-          continue;
-        }
-      } catch (e) {
-        // KV 不可用，跳过
-      }
-      // 外部作者
       authorDataMap[name] = null;
     }
   }
