@@ -80,40 +80,116 @@ function convertImagePaths(markdown, githubContentDir, owner, repo, branch) {
   });
 }
 
-/**
- * 渲染链接按钮 (通用)
- * @param citeBib publication 的 cite.bib 文本内容(有则渲染"复制"组件,无则不显示 Cite)
- */
-function renderLinksHTML(links, slug, type, owner, repo, branch, citeBib) {
-  const buttons = [];
+// hugoblox.ids 字段 → URL 模板映射
+const IDS_URL_TEMPLATES = {
+  doi:             { label: 'DOI',           url: 'https://doi.org/{id}',                                    icon: 'doi' },
+  arxiv:           { label: 'arXiv',         url: 'https://arxiv.org/abs/{id}',                              icon: 'arxiv' },
+  openreview:      { label: 'OpenReview',    url: 'https://openreview.net/forum?id={id}',                    icon: 'link' },
+  dblp:            { label: 'DBLP',          url: 'https://dblp.org/rec/{id}',                               icon: 'link' },
+  semanticscholar: { label: 'Semantic Scholar', url: 'https://www.semanticscholar.org/paper/{id}',           icon: 'link' },
+  acl_id:          { label: 'ACL',           url: 'https://aclanthology.org/{id}',                           icon: 'link' },
+  hal:             { label: 'HAL',           url: 'https://hal.science/{id}',                                icon: 'link' },
+  isbn:            { label: 'ISBN',          url: 'https://www.worldcat.org/isbn/{id}',                      icon: 'link' },
+};
 
-  // 来自 frontmatter 的显式链接
-  if (Array.isArray(links)) {
-    for (const link of links) {
-      if (link.url && link.name) {
-        buttons.push(linkButton(link.name, link.url, link.name.toLowerCase()));
-      }
+// 遗留字段 → 链接元数据
+const LEGACY_FIELDS = {
+  url_pdf:      { label: 'PDF',        icon: 'pdf' },
+  url_code:     { label: 'Code',       icon: 'code' },
+  url_dataset:  { label: 'Dataset',    icon: 'link' },
+  url_slides:   { label: 'Slides',     icon: 'link' },
+  url_video:    { label: 'Video',      icon: 'link' },
+  url_poster:   { label: 'Poster',     icon: 'link' },
+  url_project:  { label: 'Project',    icon: 'link' },
+  url_source:   { label: 'Source',     icon: 'link' },
+  external_link: { label: 'Site',      icon: 'link' },
+};
+
+/**
+ * 从 frontmatter 归一化所有链接来源为 [{label, url, icon}]
+ * 来源优先级: frontmatter.links > hugoblox.ids > legacy url_* > doi 遗留字段
+ */
+function buildLinks(frontmatter) {
+  const result = [];
+  const seen = new Set();
+
+  function add(label, url, icon) {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    result.push({ label, url, icon: icon || 'link' });
+  }
+
+  // 1. frontmatter.links 数组（label/type 均支持）
+  if (Array.isArray(frontmatter.links)) {
+    for (const link of frontmatter.links) {
+      const url = link.url || (link.id && link.provider
+        ? (IDS_URL_TEMPLATES[link.provider]?.url || '').replace('{id}', link.id)
+        : '');
+      const label = link.label || link.name || link.type || 'Link';
+      const icon = link.icon || link.type || 'link';
+      add(label, url, icon);
     }
   }
 
-  // Cite (仅 publication 且有 cite.bib 内容):点击复制 BibTeX 到剪贴板
+  // 2. hugoblox.ids
+  const ids = frontmatter.hugoblox?.ids || {};
+  for (const [key, id] of Object.entries(ids)) {
+    if (!id || !IDS_URL_TEMPLATES[key]) continue;
+    const tmpl = IDS_URL_TEMPLATES[key];
+    add(tmpl.label, tmpl.url.replace('{id}', id), tmpl.icon);
+  }
+
+  // 3. 顶层遗留 doi 字段
+  if (frontmatter.doi && !ids.doi) {
+    const doi = frontmatter.doi;
+    const url = doi.startsWith('http') ? doi : `https://doi.org/${doi}`;
+    add('DOI', url, 'doi');
+  }
+
+  // 4. legacy url_* 字段
+  for (const [field, meta] of Object.entries(LEGACY_FIELDS)) {
+    const url = frontmatter[field];
+    if (url) add(meta.label, url, meta.icon);
+  }
+
+  return result;
+}
+
+/**
+ * 渲染链接按钮 (通用)
+ * @param frontmatter - 完整 frontmatter 对象，用于 buildLinks
+ * @param type - 页面类型（publication 时附加 Cite 按钮）
+ * @param citeBib - cite.bib 文本内容
+ */
+function renderLinksHTML(frontmatter, type, citeBib) {
+  const buttons = [];
+
+  for (const link of buildLinks(frontmatter)) {
+    buttons.push(linkButton(link.label, link.url, link.icon));
+  }
+
+  // Cite 按钮（publication 专属）
   if (type === 'publication' && citeBib && citeBib.trim()) {
     buttons.push(citeCopyButton(citeBib));
   }
 
   if (buttons.length === 0) return '';
-
   return `<div>${buttons.join('\n')}</div>`;
 }
 
 function linkButton(label, url, icon) {
+  const PDF_SVG = `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0113.5 7.125v-1.5A3.375 3.375 0 0010.125 2.25H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`;
+  const CODE_SVG = `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>`;
+  const LINK_SVG = `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>`;
   const svgMap = {
-    pdf: `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625A3.375 3.375.0 0016.125 8.25h-1.5A1.125 1.125.0 0113.5 7.125v-1.5A3.375 3.375.0 0010.125 2.25H8.25m2.25 0H5.625c-.621.0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621.0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
-    cite: `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75A1.125 1.125.0 013.75 20.625V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06.0 011.5.124m7.5 10.376h3.375c.621.0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06.0 00-1.5-.124H9.375c-.621.0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375A1.125 1.125.0 018.25 16.125v-9.25m12 6.625v-1.875A3.375 3.375.0 0016.875 8.25h-1.5A1.125 1.125.0 0114.25 7.125v-1.5A3.375 3.375.0 0010.875 2.25H9.75"/></svg>`,
-    default: `<svg style="height:1em" class="inline-block" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5.0 011.242 7.244l-4.5 4.5a4.5 4.5.0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5.0 00-6.364-6.364l-4.5 4.5a4.5 4.5.0 001.242 7.244"/></svg>`,
+    pdf:   PDF_SVG,
+    code:  CODE_SVG,
+    doi:   LINK_SVG,
+    arxiv: LINK_SVG,
+    link:  LINK_SVG,
   };
-  const svg = svgMap[icon] || svgMap.default;
-  return `<a class="hb-attachment-link hb-attachment-link-large inline-flex items-center gap-1 mr-2" href="${url}" target="_blank" rel="noopener">${svg}<span>${escapeHTML(label)}</span></a>`;
+  const svg = svgMap[icon] || LINK_SVG;
+  return `<a class="hb-attachment-link hb-attachment-link-large inline-flex items-center gap-1 mr-2" href="${escapeHTML(url)}" target="_blank" rel="noopener">${svg}<span>${escapeHTML(label)}</span></a>`;
 }
 
 /**
@@ -139,9 +215,12 @@ function citeCopyButton(bib) {
  */
 function renderFeaturedImage(imageUrl, imageMeta) {
   if (!imageUrl) return '';
-  const alt = imageMeta?.alt_text || '';
+  const alt = escapeHTML(imageMeta?.alt_text || '');
   const caption = imageMeta?.caption || '';
-  return `<div class="article-header article-container featured-image-wrapper mt-4 mb-16" style="max-width:100%;max-height:480px"><div style="position:relative"><img src="${imageUrl}" alt="${escapeHTML(alt)}" class="featured-image" fetchpriority="high" style="max-width:100%;height:auto">${caption ? `<span class="article-header-caption">${escapeHTML(caption)}</span>` : ''}</div></div>`;
+  const width = imageMeta?.width ? ` width="${escapeHTML(String(imageMeta.width))}"` : '';
+  const height = imageMeta?.height ? ` height="${escapeHTML(String(imageMeta.height))}"` : '';
+  const captionHTML = caption ? `<span class="article-header-caption">${escapeHTML(caption)}</span>` : '';
+  return `<div class="article-header article-container featured-image-wrapper mt-4 mb-16" style="max-width:100%;max-height:480px"><div style="position:relative"><img src="${escapeHTML(imageUrl)}" alt="${alt}"${width}${height} class="featured-image" fetchpriority="high" loading="lazy" style="max-width:100%;height:auto">${captionHTML}</div></div>`;
 }
 
 // ============================================================================
@@ -207,11 +286,13 @@ export async function renderPublication({ slug, folder, env, log }) {
   const readingTime = calcReadingTime(body);
   const publicationVenue = frontmatter.publication || '';
   const abstract = frontmatter.abstract || frontmatter.summary || '';
+  const event = frontmatter.event || '';
+  const event_url = frontmatter.event_url || '';
+  const location = frontmatter.location || '';
 
   // 7. 链接按钮 + Cite(bib 来自 frontmatter.cite,有则渲染复制按钮)
-  const links = frontmatter.links || [];
   const citeBib = frontmatter.cite || '';
-  const linksHTML = renderLinksHTML(links, slug, 'publication', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, citeBib);
+  const linksHTML = renderLinksHTML(frontmatter, 'publication', citeBib);
 
   // 8. 封面图
   const featuredImage = frontmatter.image?.filename || '';
@@ -233,6 +314,9 @@ export async function renderPublication({ slug, folder, env, log }) {
     pubTypeLabel,
     pubType,
     publicationVenue,
+    event,
+    event_url,
+    location,
     lastEdited: frontmatter.date,
     hasAuthors: authors.length > 0,
     hasDate: !!frontmatter.date,
@@ -318,8 +402,7 @@ export async function renderPost({ slug, folder, env, log }) {
   const readingTime = calcReadingTime(body);
 
   // 7. 链接按钮 (Post 无 Cite.bib)
-  const links = frontmatter.links || [];
-  const linksHTML = renderLinksHTML(links, null, 'post', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+  const linksHTML = renderLinksHTML(frontmatter, 'post', '');
 
   // 8. 封面图
   const featuredImage = frontmatter.image?.filename || '';
@@ -334,6 +417,7 @@ export async function renderPost({ slug, folder, env, log }) {
 
   // 10. 构建 main 内容 (Post: 字体大小切换 + tags)
   const mainContent = buildPostContent({
+    type: 'post',
     title: frontmatter.title,
     dateDisplay,
     authorsHTML,
@@ -429,8 +513,7 @@ export async function renderProject({ slug, folder, env, log }) {
   const readingTime = calcReadingTime(body);
 
   // 7. 链接按钮 (项目的显式链接)
-  const links = frontmatter.links || [];
-  const linksHTML = renderLinksHTML(links, null, 'project', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH);
+  const linksHTML = renderLinksHTML(frontmatter, 'project', '');
 
   // 8. 封面图
   const featuredImage = frontmatter.image?.filename || '';
@@ -444,6 +527,7 @@ export async function renderProject({ slug, folder, env, log }) {
 
   // 10. 构建 main 内容 (Project: 与 Post 类似，字体大小切换)
   const mainContent = buildPostContent({
+    type: 'project',
     title: frontmatter.title,
     dateDisplay,
     authorsHTML,
@@ -556,10 +640,32 @@ export async function renderAuthor({ slug, folder, env, log }) {
 // 内容区域构建函数
 // ============================================================================
 
+const CHEVRON_SVG = `<svg class="inline-block mx-1 h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/></svg>`;
+
+const SECTION_LABELS = {
+  publication: '论文著作',
+  post:        '博客',
+  project:     '项目',
+  author:      '作者',
+};
+
+function buildBreadcrumb(type, title) {
+  const sectionLabel = SECTION_LABELS[type] || type;
+  const sectionUrl = `/${type}/`;
+  return `<nav class="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4 flex-wrap" aria-label="breadcrumb">`
+    + `<a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 whitespace-nowrap">Home</a>`
+    + CHEVRON_SVG
+    + `<a href="${sectionUrl}" class="hover:text-primary-600 dark:hover:text-primary-400 whitespace-nowrap">${escapeHTML(sectionLabel)}</a>`
+    + CHEVRON_SVG
+    + `<span class="font-medium text-gray-700 dark:text-gray-200 truncate">${escapeHTML(title)}</span>`
+    + `</nav>`;
+}
+
 /**
  * 构建 Post / Project 的 <main> 内容 (字体大小切换)
  */
 function buildPostContent({
+  type,
   title,
   dateDisplay,
   authorsHTML,
@@ -576,6 +682,9 @@ function buildPostContent({
   hasReadingTime,
 }) {
   let html = '';
+
+  // 面包屑
+  html += buildBreadcrumb(type || 'post', title);
 
   // 标题
   html += `<h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">${escapeHTML(title)}</h1>`;
@@ -710,12 +819,18 @@ function buildPublicationContent({
   pubTypeLabel,
   pubType,
   publicationVenue,
+  event,
+  event_url,
+  location,
   lastEdited,
   hasAuthors,
   hasDate,
   hasReadingTime,
 }) {
   let html = '';
+
+  // 面包屑
+  html += buildBreadcrumb('publication', title);
 
   // 标题
   html += `<h1 class="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">${escapeHTML(title)}</h1>`;
@@ -795,8 +910,10 @@ function buildPublicationContent({
   html += `<div class="flex flex-col gap-3 my-6">`;
 
   if (abstract) {
+    let abstractHTML = '';
+    try { abstractHTML = marked.parse(abstract); } catch (_) { abstractHTML = escapeHTML(abstract); }
     html += `<div class="font-bold text-2xl">Abstract</div>`;
-    html += `<div>${escapeHTML(abstract)}</div>`;
+    html += `<div class="prose prose-slate dark:prose-invert max-w-none">${abstractHTML}</div>`;
   }
 
   if (pubTypeLabel) {
@@ -806,8 +923,24 @@ function buildPublicationContent({
   }
 
   if (publicationVenue) {
+    let venueHTML = '';
+    try { venueHTML = marked.parse(publicationVenue); } catch (_) { venueHTML = escapeHTML(publicationVenue); }
     html += `<div class="font-bold text-2xl">Publication</div>`;
-    html += `<div>${escapeHTML(publicationVenue)}</div>`;
+    html += `<div class="prose prose-slate dark:prose-invert max-w-none">${venueHTML}</div>`;
+  }
+
+  if (event) {
+    html += `<div class="font-bold text-2xl">Conference</div>`;
+    if (event_url) {
+      html += `<div><a href="${escapeHTML(event_url)}" target="_blank" rel="noopener">${escapeHTML(event)}</a></div>`;
+    } else {
+      html += `<div>${escapeHTML(event)}</div>`;
+    }
+  }
+
+  if (location) {
+    html += `<div class="font-bold text-2xl">Location</div>`;
+    html += `<div>${escapeHTML(location)}</div>`;
   }
 
   html += `</div>`;
