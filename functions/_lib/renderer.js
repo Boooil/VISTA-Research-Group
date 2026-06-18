@@ -1070,7 +1070,6 @@ function buildAuthorContent({
   html += `<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">成果列表</h2>`;
   if (publications && publications.length > 0) {
     const TYPE_LABELS = { publication: '论文著作', post: '博客', project: '项目' };
-    // 按类型分组
     const grouped = {};
     for (const p of publications) {
       if (!grouped[p.type]) grouped[p.type] = [];
@@ -1079,12 +1078,24 @@ function buildAuthorContent({
     for (const type of ['publication', 'post', 'project']) {
       const group = grouped[type];
       if (!group || group.length === 0) continue;
-      html += `<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-6 mb-3">${escapeHTML(TYPE_LABELS[type] || type)}</h3>`;
-      html += `<ul class="space-y-2">`;
+      html += `<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-8 mb-4">${escapeHTML(TYPE_LABELS[type] || type)}</h3>`;
+      html += `<div class="flex flex-col gap-3">`;
       for (const p of group) {
-        html += `<li><a href="/${type}/${escapeHTML(p.slug)}/" class="text-primary-600 dark:text-primary-400 hover:underline">${escapeHTML(p.slug)}</a></li>`;
+        const title = p.title || p.slug;
+        const date = p.date ? p.date.substring(0, 7) : '';
+        const venue = p.venue || '';
+        const pubTypeLabel = PUB_TYPE_LABELS[p.pub_type] || '';
+        html += `<a href="/${type}/${escapeHTML(p.slug)}/"
+          class="group flex items-start justify-between gap-4 rounded-xl bg-white dark:bg-gray-800/60 px-5 py-4 shadow-sm ring-1 ring-zinc-900/5 dark:ring-white/10 hover:shadow-md hover:ring-primary-300 dark:hover:ring-primary-700 transition-all duration-200 no-underline">
+          <div class="flex-1 min-w-0">
+            ${pubTypeLabel ? `<span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 mb-2">${escapeHTML(pubTypeLabel)}</span>` : ''}
+            <div class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">${escapeHTML(title)}</div>
+            ${venue ? `<div class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">${escapeHTML(venue)}</div>` : ''}
+          </div>
+          ${date ? `<time class="flex-shrink-0 text-sm text-gray-400 dark:text-gray-500 mt-0.5">${escapeHTML(date)}</time>` : ''}
+        </a>`;
       }
-      html += `</ul>`;
+      html += `</div>`;
     }
   } else {
     html += `<p class="text-center text-gray-500 dark:text-gray-400 py-12">`

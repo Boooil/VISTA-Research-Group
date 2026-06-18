@@ -22,7 +22,9 @@
     {{- $slug := path.Base (strings.TrimRight "/" .RelPermalink) -}}
     {{- $folder := path.Base .File.Dir -}}
     {{- $authors := .Params.authors | default slice -}}
-    {{- $entry := dict "folder" $folder "authors" $authors -}}
+    {{- $pubType := "" -}}
+    {{- with index .Params.publication_types 0 -}}{{- $pubType = . -}}{{- end -}}
+    {{- $entry := dict "folder" $folder "authors" $authors "title" .Title "date" (.Date.Format "2006-01-02") "pub_type" $pubType "venue" (.Params.publication | default "") -}}
     {{- if eq .Section "publication" -}}
       {{- $pub = merge $pub (dict $slug $entry) -}}
     {{- else if eq .Section "post" -}}

@@ -147,10 +147,19 @@ export async function getPublicationsByAuthor(authorPinyin, origin, log) {
       if (typeof raw !== 'object' || raw === null) continue;
       const authors = Array.isArray(raw.authors) ? raw.authors : [];
       if (authors.includes(authorPinyin)) {
-        results.push({ slug, type });
+        results.push({
+          slug,
+          type,
+          title:    raw.title    || slug,
+          date:     raw.date     || '',
+          pub_type: raw.pub_type || '',
+          venue:    raw.venue    || '',
+        });
       }
     }
   }
+  // 按日期倒序
+  results.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
   return results;
 }
 
