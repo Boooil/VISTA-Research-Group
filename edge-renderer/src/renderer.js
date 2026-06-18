@@ -1044,13 +1044,13 @@ function buildAuthorContent({
   if (social.length > 0) {
     html += `<div class="flex gap-4 mt-4 justify-center sm:justify-start">`;
     for (const s of social) {
-      // 防御: frontmatter parser 可能返回 string (无法解析嵌套结构) 或 object
       const isObj = typeof s === 'object' && s !== null;
       const link = isObj ? (s.url || s.link || '#') : '#';
       const iconName = isObj ? (s.icon || 'link') : 'link';
+      const iconPack = isObj ? (s.icon_pack || 'fas') : 'fas';
       const label = isObj ? (s.label || iconName) : iconName;
-      const iconHTML = getSocialIcon(iconName);
-      html += `<a href="${escapeHTML(link)}" target="_blank" rel="noopener" aria-label="${escapeHTML(iconName)}" title="${escapeHTML(label)}" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors text-xl">${iconHTML}</a>`;
+      const iconHTML = getFAIcon(iconPack, iconName);
+      html += `<a href="${escapeHTML(link)}" target="_blank" rel="noopener" aria-label="${escapeHTML(label)}" title="${escapeHTML(label)}" class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors text-xl">${iconHTML}</a>`;
     }
     html += `</div>`;
   }
@@ -1086,20 +1086,20 @@ function buildPageFooterHTML() {
 }
 
 /**
- * 社交图标映射 (Font Awesome v6 classes)
- * 支持 HugoBlox 常用的 icon_pack: fas / fab
+ * 用 Font Awesome 6 <i> 标签渲染社交图标，与 Hugo get_icon partial 对齐
+ * icon_pack: fas → fa-solid, fab → fa-brands, far → fa-regular
  */
-function getSocialIcon(name) {
-  // Font Awesome brands / solid 图标映射
-  const iconMap = {
-    envelope: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4L236.8 313.6c11.4 8.5 27 8.5 38.4 0L492.8 150.4c12.1-9.1 19.2-23.3 19.2-38.4c0-26.5-21.5-48-48-48H48zM0 176V384c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"/></svg>`,
-    github: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.6 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>`,
-    orcid: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M294.75 188.19h-45.92V342h47.47c67.62 0 83.12-51.34 83.12-76.91 0-41.64-26.54-76.9-84.67-76.9zM256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm-80.79 360.76h-29.84v-207.5h29.84zm-14.92-231.14a19.57 19.57 0 1 1 19.57-19.57 19.64 19.64 0 0 1-19.57 19.57zM300 369h-81V161.26h80.6c76.73 0 110.44 54.83 110.44 103.85C410 318.39 368.38 369 300 369z"/></svg>`,
-    blog: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>`,
-    'google-scholar': `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 512 512"><path d="M390.9 298.5c0 0 0 .1.1.1c9.2 19.4 14.4 41.1 14.4 64C405.4 445.1 338.5 512 256 512s-149.4-66.9-149.4-149.4c0-22.9 5.2-44.6 14.4-64h0c1.7-3.6 3.6-7.2 5.6-10.7l0 0c15.1-26.6 39.3-47.8 67.9-59.3l0 0c7.3-3 15.2-5.3 23.3-6.9c3.7-.7 7.4-1.2 11.2-1.6c.5 0 .9-.1 1.4-.1c.5 0 .9.1 1.4.1c9.2 1.1 18.1 3.3 26.5 6.6l0 0c.7.3 1.5.6 2.2 1c2.8 1.2 5.6 2.5 8.3 3.9c.7.4 1.4.7 2.1 1.1c28.5 11.6 52.7 32.7 67.9 59.3l0 0c2.1 3.5 3.9 7 5.6 10.7zM194.4 249.8l0 0zm123.2 0l0 0zM186.6 157.7c0-38.3 31.1-69.4 69.4-69.4s69.4 31.1 69.4 69.4s-31.1 69.4-69.4 69.4s-69.4-31.1-69.4-69.4z"/></svg>`,
+function getFAIcon(iconPack, iconName) {
+  const packMap = {
+    fas: 'fa-solid',
+    fab: 'fa-brands',
+    far: 'fa-regular',
+    'fa-solid': 'fa-solid',
+    'fa-brands': 'fa-brands',
+    'fa-regular': 'fa-regular',
   };
-
-  return iconMap[name] || `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>`;
+  const faClass = packMap[iconPack] || 'fa-solid';
+  return `<i class="${faClass} fa-${escapeHTML(iconName)} fa-xl"></i>`;
 }
 
 // ============================================================================
