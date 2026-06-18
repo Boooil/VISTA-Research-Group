@@ -68,7 +68,7 @@ export async function resolveAuthors(authorNames, authorNotes, kv, githubPath = 
       // 团队成员
       const avatarUrl = data.avatar
         ? `${repoBase}/content/authors/${data.pinyin}/${data.avatar}`
-        : DEFAULT_AVATAR_URL;
+        : null;
 
       return {
         name,
