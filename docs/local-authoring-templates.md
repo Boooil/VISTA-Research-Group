@@ -53,6 +53,12 @@ links:                # 可选，外部链接按钮
 image:                # 可选，封面图（放同目录）
   filename: featured.jpg
   caption: "图注"
+cite: |               # 可选，BibTeX 引用（详情页 Cite 按钮点击复制；Hugo 构建据此生成 cite.bib）
+  @article{key2026,
+    title={...},
+    author={...},
+    year={2026}
+  }
 ---
 
 正文 Markdown。可用图片和公式：

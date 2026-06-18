@@ -17,4 +17,9 @@ tags: null
 featured: false
 links: null
 content_type: publication
+cite: |
+  @misc{ 战场目标三维模型自动对齐方法、系统及电子设备 ,
+  title={ 战场目标三维模型自动对齐方法、系统及电子设备 },
+  howpublished={Patent},
+  }
 ---

@@ -208,9 +208,9 @@ export async function renderPublication({ slug, folder, env, log }) {
   const publicationVenue = frontmatter.publication || '';
   const abstract = frontmatter.abstract || frontmatter.summary || '';
 
-  // 7. 链接按钮 + Cite(取同目录 cite.bib 内容,有则渲染复制按钮)
+  // 7. 链接按钮 + Cite(bib 来自 frontmatter.cite,有则渲染复制按钮)
   const links = frontmatter.links || [];
-  const { mdText: citeBib } = await fetchMarkdown(`${contentDir}cite.bib`, env);
+  const citeBib = frontmatter.cite || '';
   const linksHTML = renderLinksHTML(links, slug, 'publication', GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, citeBib);
 
   // 8. 封面图

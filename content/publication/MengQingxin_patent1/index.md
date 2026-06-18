@@ -17,4 +17,9 @@ tags:
 
 featured: false
 links:
+cite: |
+  @misc{ 基于大语言模型的行为树自动生成方法、装置及电子设备 ,
+  title={ 基于大语言模型的行为树自动生成方法、装置及电子设备 },
+  howpublished={Patent},
+  }
 ---

@@ -38,10 +38,19 @@ mediaTypes:
   application/slug-manifest+json:
     suffixes:
       - json
+  application/x-bibtex:
+    suffixes:
+      - bib
 outputFormats:
   SLUGMANIFEST:
     mediaType: application/slug-manifest+json
     baseName: slug-manifest
+    isPlainText: true
+    notAlternative: true
+  # 从 publication 的 frontmatter cite 字段生成 cite.bib(供下载 + 兼容旧链接)
+  BIBTEX:
+    mediaType: application/x-bibtex
+    baseName: cite
     isPlainText: true
     notAlternative: true
 outputs:

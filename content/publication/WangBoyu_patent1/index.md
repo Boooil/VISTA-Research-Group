@@ -20,4 +20,9 @@ tags:
 
 featured: false
 links:
+cite: |
+  @misc{ 一种基于密度掩膜的遥感图像检测处理方法和系统 ,
+  title={ 一种基于密度掩膜的遥感图像检测处理方法和系统 },
+  howpublished={Patent},
+  }
 ---

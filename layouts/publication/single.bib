@@ -1,0 +1,2 @@
+{{- /* 从 frontmatter cite 字段生成 cite.bib(无 cite 则输出空) */ -}}
+{{- with .Params.cite }}{{ . }}{{ end -}}
