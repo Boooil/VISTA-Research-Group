@@ -58,42 +58,40 @@ function normalizeSlug(slug) {
 /**
  * 解析 type + URL slug → 真实内容文件夹名
  *
+ * manifest 值格式兼容两种:
+ *   旧格式: string (author 段及旧构建产物)
+ *   新格式: { folder: string, authors: string[] } (publication/post/project)
+ *
  * 查找顺序:
  *   1. slug-manifest.json (Hugo 构建产出,已有文章)
  *   2. KV slugmap:<type>:<slug> (webhook 即时写入,新文章在构建完成前的兜底)
  *
- * @param {string} type
- * @param {string} urlSlug
- * @param {string} origin
- * @param {object} [log]
- * @param {{ get: Function }} [kv] - 可选 KV binding,用于新文章兜底查询
  * @returns {Promise<{folder: string|null, known: boolean}>}
- *   known=false: 两层都未命中 → 调用方应回退 Pages
- *   known=true folder=string: 命中,folder 为源文件夹名
- *   known=true folder=null:  命中但无源文件夹 (如 author taxonomy term) → 回退 Pages
  */
 export async function resolveFolder(type, urlSlug, origin, log, kv) {
   const manifest = await loadManifest(origin, log);
   const table = manifest && manifest[type];
 
   if (table) {
-    // 1. 直接命中 (manifest key 与 url.pathname 同为 percent-encoded)
+    // 1. 直接命中
     if (Object.prototype.hasOwnProperty.call(table, urlSlug)) {
-      const v = table[urlSlug];
-      return { folder: v || null, known: true };
+      const raw = table[urlSlug];
+      const folder = typeof raw === 'object' && raw !== null ? (raw.folder || null) : (raw || null);
+      return { folder, known: true };
     }
 
-    // 2. 解码后比对 (防御 encoding 差异)
+    // 2. 解码后比对
     const target = normalizeSlug(urlSlug);
     for (const key of Object.keys(table)) {
       if (normalizeSlug(key) === target) {
-        const v = table[key];
-        return { folder: v || null, known: true };
+        const raw = table[key];
+        const folder = typeof raw === 'object' && raw !== null ? (raw.folder || null) : (raw || null);
+        return { folder, known: true };
       }
     }
   }
 
-  // 3. KV 兜底 (新文章: manifest 尚未包含,但 webhook 已写入即时映射)
+  // 3. KV 兜底
   if (kv) {
     try {
       const decoded = normalizeSlug(urlSlug);
@@ -122,10 +120,38 @@ export async function resolveSlugByFolder(type, folder, origin, log) {
     return null;
   }
   const table = manifest[type];
-  for (const [urlSlug, f] of Object.entries(table)) {
+  for (const [urlSlug, raw] of Object.entries(table)) {
+    const f = typeof raw === 'object' && raw !== null ? raw.folder : raw;
     if (f === folder) return urlSlug;
   }
   return null;
+}
+
+/**
+ * 按 author pinyin 从 manifest 返回该作者的成果列表。
+ * 仅覆盖 manifest 已包含的内容（Hugo 构建产物）。
+ * @param {string} authorPinyin - 如 "WangBoyu"
+ * @param {string} origin
+ * @param {object} [log]
+ * @returns {Promise<Array<{slug, title, type}>>}
+ */
+export async function getPublicationsByAuthor(authorPinyin, origin, log) {
+  const manifest = await loadManifest(origin, log);
+  if (!manifest) return [];
+
+  const results = [];
+  for (const type of ['publication', 'post', 'project']) {
+    const table = manifest[type];
+    if (!table) continue;
+    for (const [slug, raw] of Object.entries(table)) {
+      if (typeof raw !== 'object' || raw === null) continue;
+      const authors = Array.isArray(raw.authors) ? raw.authors : [];
+      if (authors.includes(authorPinyin)) {
+        results.push({ slug, type });
+      }
+    }
+  }
+  return results;
 }
 
 // ============================================================================

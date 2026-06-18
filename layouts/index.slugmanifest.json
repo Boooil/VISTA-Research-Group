@@ -21,12 +21,14 @@
   {{- if .File -}}
     {{- $slug := path.Base (strings.TrimRight "/" .RelPermalink) -}}
     {{- $folder := path.Base .File.Dir -}}
+    {{- $authors := .Params.authors | default slice -}}
+    {{- $entry := dict "folder" $folder "authors" $authors -}}
     {{- if eq .Section "publication" -}}
-      {{- $pub = merge $pub (dict $slug $folder) -}}
+      {{- $pub = merge $pub (dict $slug $entry) -}}
     {{- else if eq .Section "post" -}}
-      {{- $post = merge $post (dict $slug $folder) -}}
+      {{- $post = merge $post (dict $slug $entry) -}}
     {{- else if eq .Section "project" -}}
-      {{- $project = merge $project (dict $slug $folder) -}}
+      {{- $project = merge $project (dict $slug $entry) -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
@@ -37,6 +39,10 @@
     {{- $folder := "" -}}
     {{- if .File -}}{{- $folder = path.Base .File.Dir -}}{{- end -}}
     {{- $author = merge $author (dict $slug $folder) -}}
+    {{- /* 同时用 folder 名(pinyin)为 key，让 /author/WangBoyu/ 这类 URL 能命中 */ -}}
+    {{- if $folder -}}
+      {{- $author = merge $author (dict $folder $folder) -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 {{- dict "publication" $pub "post" $post "project" $project "author" $author | jsonify -}}

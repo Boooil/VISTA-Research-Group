@@ -16,6 +16,7 @@ import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS } from './authors.js
 import { formatDate, calcReadingTime, toISODate } from './utils.js';
 import { renderPageShell, renderAuthorShell } from './shell.js';
 import { getHeadAssets } from './head-assets.js';
+import { getPublicationsByAuthor } from './slug-map.js';
 
 // 配置 marked
 marked.use({
@@ -602,6 +603,8 @@ export async function renderAuthor({ slug, folder, env, log }) {
     : '';
 
   // 4. 构建 Author Profile 内容
+  const publications = await getPublicationsByAuthor(frontmatter.pinyin || slug, SITE_BASE_URL, log);
+
   const mainContent = buildAuthorContent({
     title: frontmatter.title,
     pinyin: frontmatter.pinyin || slug,
@@ -613,6 +616,7 @@ export async function renderAuthor({ slug, folder, env, log }) {
     email: frontmatter.email || '',
     avatarUrl,
     education: frontmatter.education || '',
+    publications,
   });
 
   // 5. 构建完整页面
@@ -977,6 +981,7 @@ function buildAuthorContent({
   email,
   avatarUrl,
   education,
+  publications,
 }) {
   let html = '';
 
@@ -1061,12 +1066,32 @@ function buildAuthorContent({
   // 分隔线
   html += `<hr class="border-0 border-t border-gray-300 dark:border-gray-600 mb-10">`;
 
-  // 成果列表占位 (需全量内容扫描，Worker 中不可行)
+  // 成果列表
   html += `<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">成果列表</h2>`;
-  html += `<p class="text-center text-gray-500 dark:text-gray-400 py-12">`
-    + `完整成果列表由 Hugo 全量构建生成，当前仅支持详情页即时渲染。<br>`
-    + `请访问 <a href="/publication/" class="text-primary-600 hover:underline">Publications</a> 和 <a href="/post/" class="text-primary-600 hover:underline">Posts</a> 列表页。`
-    + `</p>`;
+  if (publications && publications.length > 0) {
+    const TYPE_LABELS = { publication: '论文著作', post: '博客', project: '项目' };
+    // 按类型分组
+    const grouped = {};
+    for (const p of publications) {
+      if (!grouped[p.type]) grouped[p.type] = [];
+      grouped[p.type].push(p);
+    }
+    for (const type of ['publication', 'post', 'project']) {
+      const group = grouped[type];
+      if (!group || group.length === 0) continue;
+      html += `<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-6 mb-3">${escapeHTML(TYPE_LABELS[type] || type)}</h3>`;
+      html += `<ul class="space-y-2">`;
+      for (const p of group) {
+        html += `<li><a href="/${type}/${escapeHTML(p.slug)}/" class="text-primary-600 dark:text-primary-400 hover:underline">${escapeHTML(p.slug)}</a></li>`;
+      }
+      html += `</ul>`;
+    }
+  } else {
+    html += `<p class="text-center text-gray-500 dark:text-gray-400 py-12">`
+      + `完整成果列表由 Hugo 全量构建生成，当前仅支持详情页即时渲染。<br>`
+      + `请访问 <a href="/publication/" class="text-primary-600 hover:underline">Publications</a> 和 <a href="/post/" class="text-primary-600 hover:underline">Posts</a> 列表页。`
+      + `</p>`;
+  }
 
   html += `</div>`; // close max-w-7xl
 
