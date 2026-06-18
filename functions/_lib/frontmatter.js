@@ -123,6 +123,11 @@ function parseYAML(text) {
 
 /**
  * 尝试解析 YAML 数组
+ * 支持两种 item 形态:
+ *   - 标量:   - WangBoyu
+ *   - 对象:   - icon: envelope
+ *               icon_pack: fas
+ *               link: "..."
  */
 function tryParseArray(lines, startIdx) {
   const items = [];
@@ -133,27 +138,64 @@ function tryParseArray(lines, startIdx) {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
 
-    const currentIndent = line.match(/^(\s*)/)[1];
+    const currentIndent = (line.match(/^(\s*)/) || ['', ''])[1];
 
     if (baseIndent === null) {
-      if (line.trim().startsWith('- ')) {
+      if (line.trim().startsWith('- ') || line.trim() === '-') {
         baseIndent = currentIndent;
       } else {
         return null;
       }
     }
 
-    if (!line.trim().startsWith('- ') || currentIndent !== baseIndent) {
-      break;
-    }
+    // 缩进比 base 浅 → 离开了数组
+    if (currentIndent.length < baseIndent.length) break;
 
-    const itemValue = line.trim().substring(2);
-    items.push(itemValue.replace(/^["'](.*)["']$/, '$1'));
-    i++;
+    if (currentIndent !== baseIndent || !line.trim().startsWith('- ')) break;
+
+    const itemRaw = line.trim().substring(2).trim(); // "- " 后面的内容
+
+    // 判断是否为内联对象 item (含 ":")
+    if (itemRaw.includes(':')) {
+      const obj = {};
+      // 解析第一行的 key: value
+      const colonIdx = itemRaw.indexOf(':');
+      const firstKey = itemRaw.substring(0, colonIdx).trim();
+      const firstVal = itemRaw.substring(colonIdx + 1).trim().replace(/^["'](.*)["']$/, '$1');
+      if (firstKey) obj[firstKey] = parseScalar(firstVal);
+      i++;
+      // 消费后续缩进更深的 key: value 行（同一 item 的剩余字段）
+      while (i < lines.length) {
+        const sub = lines[i];
+        if (!sub.trim()) { i++; continue; }
+        const subIndent = (sub.match(/^(\s*)/) || ['', ''])[1];
+        if (subIndent.length <= baseIndent.length) break; // 回到数组层级或更浅
+        if (sub.trim().startsWith('- ')) break;           // 新 item
+        const subColon = sub.indexOf(':');
+        if (subColon === -1) { i++; continue; }
+        const subKey = sub.substring(0, subColon).trim();
+        const subVal = sub.substring(subColon + 1).trim().replace(/^["'](.*)["']$/, '$1');
+        if (subKey) obj[subKey] = parseScalar(subVal);
+        i++;
+      }
+      items.push(obj);
+    } else {
+      // 标量 item
+      items.push(itemRaw.replace(/^["'](.*)["']$/, '$1'));
+      i++;
+    }
   }
 
   if (items.length === 0) return null;
   return { items, nextIdx: i };
+}
+
+function parseScalar(val) {
+  if (val === 'true') return true;
+  if (val === 'false') return false;
+  if (/^-?\d+$/.test(val)) return parseInt(val, 10);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  return val;
 }
 
 /**
