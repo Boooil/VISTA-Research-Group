@@ -95,3 +95,37 @@ plan 批准、退出 plan 模式后,将最终设计方案沉淀为 `docs/` 下�
 - `docs/edge-rendering-design.md` — 边缘渲染总体方案
 - `docs/phase3-realtime-plan.md` — 实时性(purge + 新文章 KV 映射)方案与进度
 - `docs/cite-bib-design.md` — cite.bib 上传(CMS file 字段)+ Cite 复制到剪贴板
+- `docs/phase4-alignment-plan.md` — 1:1 渲染对齐方案与实施记录
+
+## 踩坑记录（已实测，改动前务必参考）
+
+### 7. frontmatter 解析器不支持数组中的多字段 YAML 对象
+- `functions/_lib/frontmatter.js` 的轻量解析器原本把数组 item 只取首行，导致多字段对象（如 `social` 的 `icon`/`icon_pack`/`link` 三字段）被压成单字符串，渲染时 `isObj` 为 false，图标全退化为默认 link 图标。
+- **已修复**：`tryParseArray` 现在检测 `- key: val` 形态，并消费后续缩进更深的同 item 字段行。
+- **影响范围**：所有 frontmatter 里的对象数组字段都受益，不只是 `social`——包括 `links`（含 `type`/`url`/`label`）、`organizations`（含 `name`）等。改解析器前先运行 `node edge-renderer/test/parse-test.js` 和新增的 `parse-multi.js`。
+
+### 8. 作者 URL 路由：manifest 用中文编码 key，URL 用 pinyin key
+- `slug-manifest.json` 的 `author` 段 key 是 Hugo urlize 中文名后的 percent-encoded 字符串（如 `%E7%8E%8B%E5%8D%9A%E5%AE%87`），value 是 pinyin 文件夹名（`WangBoyu`）。
+- 但文章顶部作者链接生成的是 `/author/WangBoyu/`（pinyin），`resolveFolder` 找不到这个 key → `known: false` → 回退 Pages → **404**。
+- **已修复**：`layouts/index.slugmanifest.json` 的 author 循环里，当 `$folder` 非空时额外写入 `$folder → $folder`，让 pinyin URL 也能命中。
+- **规律**：任何时候改 manifest 生成逻辑，都要同时检查 `resolveFolder` 里的 `known=true folder=null` 分支——这是 taxonomy term（无源文件）的正常路径，不要和真正的未命中混淆。
+
+### 9. slug-manifest 值格式演进：string → object，slug-map.js 须兼容两者
+- Phase 4 后 publication/post/project 的 manifest 值从纯 `folder` 字符串改为 `{folder, authors, title, date, pub_type, venue}` 对象。
+- `resolveFolder`、`resolveSlugByFolder`、`getPublicationsByAuthor` 都需用 `typeof raw === 'object' ? raw.folder : raw` 兼容旧格式（author 段仍是字符串）。
+- `getPublicationsByAuthor` 返回完整元数据（title/date/pub_type/venue），供作者页卡片渲染，无需额外 GitHub 请求。
+
+### 10. DEFAULT_AUTHORS 必须作为 KV 的兜底，不能优先于 KV
+- 原来 `resolveAuthors` 先查 `DEFAULT_AUTHORS`，KV 只在不命中时才查。CMS 删除作者头像后 KV 写入 `avatar: ""`，但 `DEFAULT_AUTHORS` 里仍是 `avatar: 'avatar.jpg'` → 构造了一个不存在的 Raw URL → 裂图。
+- **已修复**：改为 KV 优先，`DEFAULT_AUTHORS` 仅在 KV 无数据时兜底（新成员首次未同步前）。
+- **关联**：`sync-kv` Action 仅在 `content/authors/**` 等路径变更时触发。CMS 编辑作者信息后 KV 会更新；但如果只改了代码未触及 authors 路径，KV 不刷新，`DEFAULT_AUTHORS` 仍是保底。
+
+### 11. 社交图标渲染：Hugo 用 Font Awesome CSS 类，边缘渲染器需对齐
+- Hugo 的 `get_icon` partial 把 `icon_pack: fab` + `icon: github` 渲染成 `<i class="fa-brands fa-github fa-xl"></i>`，依赖 shell 里已加载的 Font Awesome 6 CDN CSS。
+- 边缘渲染器原来用硬编码 SVG，与 Hugo 渲染出的图标外观不同。
+- **已修复**：`buildAuthorContent` 改用 `getFAIcon(iconPack, iconName)` 输出 `<i>` 标签，`fas→fa-solid`、`fab→fa-brands`、`far→fa-regular`。FA CSS 已在 shell 里，无需额外引入。
+- **前提**：frontmatter 解析器必须能正确解析多字段数组对象（见踩坑 7），否则 `icon_pack` 字段根本读不到。
+
+### 12. Phase 4 对齐时两项确认为「无差距」，不需实现
+- **U（lastmod）**：`hugo.yaml` 设 `enableGitInfo: false`，Hugo 也回落到 `date` 字段，与边缘渲染器行为完全一致。若未来开启 `enableGitInfo: true`，再补 GitHub Commits API 查询。
+- **W（JSON-LD）**：HugoBlox 本身不生成 JSON-LD structured data，Hugo 版与边缘版均无，差距为零。不要为「SEO 完整性」主动加，与 Hugo 版不一致反而引入新差异。
