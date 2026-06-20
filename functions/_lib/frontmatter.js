@@ -108,6 +108,8 @@ function parseYAML(text) {
       result[key] = true;
     } else if (value === 'false') {
       result[key] = false;
+    } else if (value === 'null' || value === '~') {
+      result[key] = null;
     } else if (/^-?\d+$/.test(value)) {
       result[key] = parseInt(value, 10);
     } else if (/^-?\d+\.\d+$/.test(value)) {

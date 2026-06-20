@@ -610,12 +610,12 @@ export async function renderAuthor({ slug, folder, env, log }) {
     pinyin: frontmatter.pinyin || slug,
     role: frontmatter.role || '',
     bio: frontmatter.bio || '',
-    interests: frontmatter.interests || [],
-    social: frontmatter.social || [],
-    organizations: frontmatter.organizations || [],
-    email: frontmatter.email || '',
+    interests: Array.isArray(frontmatter.interests) ? frontmatter.interests : [],
+    social: Array.isArray(frontmatter.social) ? frontmatter.social : [],
+    organizations: Array.isArray(frontmatter.organizations) ? frontmatter.organizations : [],
+    email: (frontmatter.email && frontmatter.email !== 'null') ? frontmatter.email : '',
     avatarUrl,
-    education: frontmatter.education || '',
+    education: (frontmatter.education && frontmatter.education !== 'null') ? frontmatter.education : '',
     publications,
   });
 
