@@ -111,7 +111,7 @@ export function renderAuthorsHTML(authors) {
     if (a.isTeamMember) {
       return `${comma}
   <a href="${a.authorUrl}" class="group inline-flex items-center text-current gap-x-1.5 mx-1 hover:underline">
-    ${a.avatarUrl ? `<img src="${a.avatarUrl}" width="16" height="16" alt="${a.displayName}" class="inline-block h-4 w-4 rounded-full border border-current" loading="lazy" />` : ''}
+    ${a.avatarUrl ? `<img src="${a.avatarUrl}" width="16" height="16" alt="${a.displayName}" class="inline-block h-4 w-4 rounded-full border border-current" loading="lazy" onerror="this.style.display='none'" />` : ''}
     <span class="text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300">${escapeHTML(a.displayName)}</span>
   </a>${renderAuthorNote(a)}`;
     } else {
