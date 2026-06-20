@@ -1098,10 +1098,7 @@ function buildAuthorContent({
       html += `</div>`;
     }
   } else {
-    html += `<p class="text-center text-gray-500 dark:text-gray-400 py-12">`
-      + `完整成果列表由 Hugo 全量构建生成，当前仅支持详情页即时渲染。<br>`
-      + `请访问 <a href="/publication/" class="text-primary-600 hover:underline">Publications</a> 和 <a href="/post/" class="text-primary-600 hover:underline">Posts</a> 列表页。`
-      + `</p>`;
+    html += `<p class="text-center text-gray-400 dark:text-gray-500 py-12">暂无成果</p>`;
   }
 
   html += `</div>`; // close max-w-7xl
