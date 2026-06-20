@@ -1,26 +1,17 @@
 ---
-title: "高晟轩"
-content_type: author
-pinyin: "GaoShengxuan"
-role: "在读硕士"
-avatar_filename: avatar.jpg
+title: 高晟轩
+pinyin: GaoShengxuan
+role: 在读硕士
+avatar_filename: ""
 bio: ""
-interests:
-social:
-  - icon: envelope
-    icon_pack: fas
-    link: "#"
-  - icon: github
-    icon_pack: fab
-    link: "#"
+interests: []
+social: []
 organizations:
   - name: VISTA Research Group
     url: ""
-education:
 email: ""
 user_groups:
   - 在读硕士
+content_type: author
+education: null
 ---
-
-
-
