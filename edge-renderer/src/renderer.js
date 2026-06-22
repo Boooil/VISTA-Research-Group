@@ -1182,9 +1182,6 @@ function buildAuthorContent({
  */
 function buildPageFooterHTML() {
   return `<div class="container mx-auto prose prose-slate lg:prose-xl dark:prose-invert mt-5"><div class="max-w-prose print:hidden">
-<section class="flex flex-row flex-wrap justify-center pt-4 text-xl">
-  <a target=_blank rel=noopener class="m-1 rounded-md bg-neutral-300 p-1.5 text-neutral-700 hover:bg-primary-500 hover:text-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-primary-400 dark:hover:text-neutral-800" href="#" title="Share on X"><svg style="height:1em" viewBox="0 0 512 512"><path fill="currentColor" d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/></svg></a>
-</section>
 <div class="pt-1 no-prose w-full"><hr class="border-dotted border-neutral-300 dark:border-neutral-600"></div>
 </div></div>`;
 }
