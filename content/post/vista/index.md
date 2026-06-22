@@ -1,7 +1,7 @@
 ---
 title: VISTA网站更新日志
 slug: vista
-date: 2026-06-22T22:32
+date: 2026-06-22T22:32:00+08:00
 authors:
   - WangBoyu
 summary: 截止至2026.6.22日更新和修复的内容细则

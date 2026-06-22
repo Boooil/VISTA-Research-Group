@@ -169,7 +169,8 @@ collections:
         name: "date"
         widget: "datetime"
         date_format: "YYYY-MM-DD"
-        time_format: "HH:mm"
+        time_format: false
+        picker_utc: false
         default: "{{now}}"
       - label: "作者"
         name: "authors"
@@ -249,7 +250,8 @@ collections:
         name: "date"
         widget: "datetime"
         date_format: "YYYY-MM-DD"
-        time_format: "HH:mm"
+        time_format: false
+        picker_utc: false
       - label: "摘要"
         name: "summary"
         widget: "text"
@@ -342,7 +344,8 @@ collections:
         name: "date"
         widget: "datetime"
         date_format: "YYYY-MM-DD"
-        time_format: "HH:mm"
+        time_format: false
+        picker_utc: false
       - label: "出版物类型"
         name: "publication_types"
         widget: "select"
