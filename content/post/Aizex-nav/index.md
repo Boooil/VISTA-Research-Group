@@ -1,16 +1,16 @@
 ---
-title: "给Aizex-ChatGPT 装一个对话导航面板"
-slug: Aizex-nav
-content_type: post
+title: 给Aizex-ChatGPT 装一个对话导航面板
+slug: aizex-nav
 date: 2026-06-22
 authors:
   - WangBoyu
-summary: "用一个油猴脚本，解决长对话里找不到历史提问的问题。"
+summary: 用一个油猴脚本，解决长对话里找不到历史提问的问题。
+content_type: post
+math: true
 tags:
   - 网页效率工具
 categories:
   - preview
-math: true
 featured: true
 ---
 
