@@ -1,5 +1,15 @@
 # 更新日志 — 边缘渲染与实时发布修复
 
+> 2026-06-22 | 修复 tag/category 链接 404 和布局错位；修复文件下载被 Tampermonkey 拦截
+
+## 修复的问题
+
+- 修复详情页底部 tag / category 标签点击后 404 的问题（渲染器直接用原始值拼 URL，未经 urlize，与 Hugo taxonomy 实际路径不符；如 `/categories/News/` 实为 `/categories/news/`，中文 tag 需 percent-encode）——现改用 `urlizeTitle + encodeURIComponent`，与 Hugo 保持一致
+- 修复详情页底部 tag / category 标签布局错位的问题（多余的 `container mx-auto prose max-w-prose` 包装导致在 `<main>` 内部再次缩窄）——已去掉多余包装，标签与正文对齐
+- 修复 post 正文中 `[下载代码](./xxx.user.js)` 点击后跳转到 Tampermonkey 安装页而非下载文件的问题——Markdown 链接会让浏览器导航到 URL，被 Tampermonkey 扩展拦截；改用 `<a href="..." download>` 标签，浏览器直接触发保存，绕过拦截
+
+---
+
 > 2026-06-22 | 新增右侧目录面板（On this page）
 
 ## 新增能力
