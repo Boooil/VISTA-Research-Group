@@ -16,7 +16,7 @@ import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS } from './authors.js
 import { formatDate, calcReadingTime, toISODate } from './utils.js';
 import { renderPageShell, renderAuthorShell } from './shell.js';
 import { getHeadAssets } from './head-assets.js';
-import { getPublicationsByAuthor } from './slug-map.js';
+import { getPublicationsByAuthor, urlizeTitle } from './slug-map.js';
 
 // ============================================================================
 // TOC 辅助函数
@@ -847,12 +847,13 @@ function buildPostContent({
 
   // Tags & Categories (页脚区域)
   if (tags.length > 0 || categories.length > 0) {
-    html += `<div class="container mx-auto prose prose-slate lg:prose-xl dark:prose-invert mt-5"><div class="max-w-prose print:hidden">`;
+    html += `<div class="mt-5">`;
 
     if (tags.length > 0) {
       html += `<div class="flex flex-wrap gap-2 mt-4">`;
       for (const tag of tags) {
-        html += `<a href="/tags/${tag}/" class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 hover:text-primary-700 dark:hover:bg-primary-900 dark:hover:text-primary-300 transition-colors">${escapeHTML(tag)}</a>`;
+        const slug = encodeURIComponent(urlizeTitle(tag));
+        html += `<a href="/tags/${slug}/" class="inline-block bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 hover:text-primary-700 dark:hover:bg-primary-900 dark:hover:text-primary-300 transition-colors">${escapeHTML(tag)}</a>`;
       }
       html += `</div>`;
     }
@@ -860,12 +861,13 @@ function buildPostContent({
     if (categories.length > 0) {
       html += `<div class="flex flex-wrap gap-2 mt-2">`;
       for (const cat of categories) {
-        html += `<a href="/categories/${cat}/" class="inline-block bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors">${escapeHTML(cat)}</a>`;
+        const slug = encodeURIComponent(urlizeTitle(cat));
+        html += `<a href="/categories/${slug}/" class="inline-block bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs px-2.5 py-1 rounded-full hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors">${escapeHTML(cat)}</a>`;
       }
       html += `</div>`;
     }
 
-    html += `</div></div>`;
+    html += `</div>`;
   }
 
   // 最后编辑时间
