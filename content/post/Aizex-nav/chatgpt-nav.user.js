@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         ChatGPT 对话导航
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  在 ChatGPT 页面注入浮动导航面板，快速跳转到任意历史提问
-// @match        https://mana-x.aizex.net/*
+// @match        https://*.memofun.net/*
+// @match        https://*.aizex.net/*
 // @match        https://chatgpt.com/*
 // @grant        none
 // ==/UserScript==
