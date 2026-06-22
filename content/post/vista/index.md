@@ -1,7 +1,7 @@
 ---
 title: VISTA网站更新日志
 slug: vista
-date: 2026-06-22
+date: 2026-06-22T22:32
 authors:
   - WangBoyu
 summary: 截止至2026.6.22日更新和修复的内容细则
@@ -26,6 +26,8 @@ content_type: post
 ## 修复的问题
 
 - 修复同一天发布的多篇文章排序不确定的问题——`date` 字段改为带时分秒格式（`2026-06-22T20:00:00+08:00`），Hugo 列表页按精确时间降序排列，最新发布的文章出现在最前
+- CMS 后台 date 字段启用时间选择器（post/publication/project 均已更新），编辑文章时可同时选日期和时间，保存后 frontmatter 携带精确时间戳
+- 本地写作模板（`docs/local-authoring-templates.md`）更新日期规则：推荐 `date: YYYY-MM-DDThh:mm:ss+08:00` 格式，说明纯日期的适用场景
 
 ## 新增能力
 
