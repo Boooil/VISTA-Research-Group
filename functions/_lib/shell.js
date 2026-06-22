@@ -36,6 +36,7 @@ const STANDARD_CONTENT_WRAPPER = `<div class="page-body my-10"><div class="mx-au
 __CONTENT__
 </main>
 </article>
+__TOC__
 </div></div>`;
 
 const AUTHOR_CONTENT_WRAPPER = `<div class="page-body my-10">
@@ -84,6 +85,7 @@ function applyShellReplacements(shell, {
   currentYear,
   ogType = 'article',
   headAssets,
+  toc = '',
 }) {
   const safeTitle = escapeHTML(title);
   const safeDesc = escapeHTML(description || '').substring(0, 300);
@@ -102,6 +104,7 @@ function applyShellReplacements(shell, {
 
   return shell
     .replace(/__CONTENT__/, content)
+    .replace(/__TOC__/g, toc)
     .replace(/__HEAD_ASSETS__/g, assets)
     .replace(/__CANONICAL_URL__/g, escapeHTML(canonicalUrl))
     .replace(/__META_DESC__/g, safeDesc)

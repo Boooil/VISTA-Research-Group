@@ -18,11 +18,73 @@ import { renderPageShell, renderAuthorShell } from './shell.js';
 import { getHeadAssets } from './head-assets.js';
 import { getPublicationsByAuthor } from './slug-map.js';
 
-// 配置 marked
+// ============================================================================
+// TOC 辅助函数
+// ============================================================================
+
+// 去除 Markdown 内联语法，用于 TOC 纯文本显示
+function stripInlineMarkdown(text) {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .trim();
+}
+
+// 生成 heading id（与 Hugo anchorize 对齐：保留中文/CJK，空格转 -）
+function slugifyHeading(text) {
+  return text.toLowerCase().replace(/\s+/g, '-').replace(/[^\p{L}\p{N}-]/gu, '') || 'heading';
+}
+
+// HTML 属性值转义（只处理双引号）
+function escapeAttr(str) {
+  return String(str).replace(/"/g, '&quot;');
+}
+
+// 模块级 heading 收集（每次 Markdown 渲染前重置）
+let _currentHeadings = [];
+
+// 配置 marked：GFM + 自定义 heading renderer 提取目录
 marked.use({
   gfm: true,
   breaks: false,
+  renderer: {
+    heading({ tokens, depth }) {
+      const rawText = tokens.map(t => t.raw ?? t.text ?? '').join('');
+      const plainText = stripInlineMarkdown(rawText);
+      const id = slugifyHeading(plainText);
+      if (depth >= 2 && depth <= 3) {
+        _currentHeadings.push({ depth, id, text: plainText });
+      }
+      const inner = this.parser.parseInline(tokens);
+      return `<h${depth} id="${escapeAttr(id)}">${inner}</h${depth}>`;
+    },
+  },
 });
+
+// ============================================================================
+// TOC HTML 构建
+// ============================================================================
+
+/**
+ * 从收集的 headings 生成 TOC HTML，与 Hugo toc.html 视觉对齐
+ */
+function buildTOCHTML(headings) {
+  if (!headings || headings.length === 0) return '';
+  const items = headings.map(h => {
+    const cls = h.depth === 2 ? 'font-semibold' : 'pl-4 rtl:pr-4';
+    return `<li class="my-2 scroll-my-6 scroll-py-6">`
+      + `<a class="${cls} inline-block text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 w-full break-words" href="#${escapeAttr(h.id)}">`
+      + escapeHTML(h.text)
+      + `</a></li>`;
+  }).join('');
+  return `<nav class="hb-toc order-last hidden w-64 shrink-0 xl:block print:hidden px-4" aria-label="table of contents">`
+    + `<div class="hb-scrollbar text-sm [hyphens:auto] sticky top-16 overflow-y-auto pr-4 pt-6 max-h-[calc(100vh-var(--navbar-height)-env(safe-area-inset-bottom))] -mr-4 rtl:-ml-4">`
+    + `<p class="mb-4 font-semibold tracking-tight">On this page</p>`
+    + `<ul>${items}</ul>`
+    + `</div></nav>`;
+}
 
 // ============================================================================
 // 公共辅助函数
@@ -262,6 +324,7 @@ export async function renderPublication({ slug, folder, env, log }) {
 
   // 4. Markdown → HTML
   let bodyHTML = '';
+  _currentHeadings = [];
   if (processedBody) {
     try {
       bodyHTML = marked.parse(processedBody);
@@ -270,6 +333,7 @@ export async function renderPublication({ slug, folder, env, log }) {
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
     }
   }
+  const tocHTML = buildTOCHTML(_currentHeadings);
 
   // 5. 解析作者
   const { authors } = await resolveAuthors(
@@ -333,6 +397,7 @@ export async function renderPublication({ slug, folder, env, log }) {
 
   const html = renderPageShell({
     content: mainContent,
+    toc: tocHTML,
     canonicalUrl,
     title: frontmatter.title,
     description: metaDescription,
@@ -380,6 +445,7 @@ export async function renderPost({ slug, folder, env, log }) {
 
   // 4. Markdown → HTML
   let bodyHTML = '';
+  _currentHeadings = [];
   if (processedBody) {
     try {
       bodyHTML = marked.parse(processedBody);
@@ -388,6 +454,7 @@ export async function renderPost({ slug, folder, env, log }) {
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
     }
   }
+  const tocHTML = buildTOCHTML(_currentHeadings);
 
   // 5. 解析作者
   const { authors } = await resolveAuthors(
@@ -444,6 +511,7 @@ export async function renderPost({ slug, folder, env, log }) {
 
   const html = renderPageShell({
     content: mainContent,
+    toc: tocHTML,
     canonicalUrl,
     title: frontmatter.title,
     description: metaDescription,
@@ -491,6 +559,7 @@ export async function renderProject({ slug, folder, env, log }) {
 
   // 4. Markdown → HTML
   let bodyHTML = '';
+  _currentHeadings = [];
   if (processedBody) {
     try {
       bodyHTML = marked.parse(processedBody);
@@ -499,6 +568,7 @@ export async function renderProject({ slug, folder, env, log }) {
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
     }
   }
+  const tocHTML = buildTOCHTML(_currentHeadings);
 
   // 5. 解析作者
   const { authors } = await resolveAuthors(
@@ -554,6 +624,7 @@ export async function renderProject({ slug, folder, env, log }) {
 
   const html = renderPageShell({
     content: mainContent,
+    toc: tocHTML,
     canonicalUrl,
     title: frontmatter.title,
     description: metaDescription,
