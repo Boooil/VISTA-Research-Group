@@ -158,7 +158,7 @@ https://chatgpt.com/*        — ChatGPT 官网
 |------|------|
 | `chatgpt-nav.user.js` | 油猴脚本本体，安装到 Tampermonkey 即可使用。 |
 
-[下载代码](./chatgpt-nav.user.js)
+<a href="./chatgpt-nav.user.js" download="chatgpt-nav.user.js">下载代码</a>
 
 ---
 

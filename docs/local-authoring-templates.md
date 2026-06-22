@@ -158,10 +158,19 @@ user_groups:              # 首页团队分组筛选
 
 ---
 
-## 图片与公式
+## 图片、文件与链接
 
 - **图片**：`![alt](featured.jpg)` 或 `![alt](./media/x.png)`，相对路径。边缘渲染器会自动转成 GitHub Raw 绝对路径。
 - **公式**：`$...$`（行内）、`$$...$$`（块级），前端 KaTeX/MathJax 渲染，原样写即可。
+- **可下载文件**：把文件放同目录，用 HTML `<a>` 标签，**不要用 Markdown 链接语法**：
+
+  ```html
+  <a href="./script.user.js" download="script.user.js">下载代码</a>
+  ```
+
+  > ⚠️ `[下载](./file.user.js)` 这种写法会让浏览器**导航**到该 URL：`.user.js` 文件会被 Tampermonkey 扩展拦截并重定向到其安装页；`.sh`、`.bat` 等可执行类型也可能被浏览器拦截或直接运行。`download` 属性让浏览器直接触发保存对话框而不导航，规避所有此类拦截。
+
+- **外部链接**：普通 Markdown 语法 `[文字](https://...)` 即可，不受上述限制。
 
 ## 与 CMS 后台的关系
 
@@ -171,5 +180,5 @@ user_groups:              # 首页团队分组筛选
 
 ## 参考现有内容
 - publication：`content/publication/TRVP/index.md`
-- post：`content/post/2026-06-14-vista/index.md`
+- post：`content/post/Aizex-nav/index.md`（含文件下载示例）
 - author：`content/authors/WangBoyu/_index.md`

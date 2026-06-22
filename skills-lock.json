@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "playwright-cli": {
+      "source": "@playwright/cli",
+      "sourceType": "npm",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "version": "0.1.14"
+    },
+    "web-app-test": {
+      "source": "Mencius2023/skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-app-test/SKILL.md",
+      "computedHash": "073484c2e6e4b125a9781802117948fd73f430208a5808720ff34fe86fe176cd"
+    }
+  }
+}
