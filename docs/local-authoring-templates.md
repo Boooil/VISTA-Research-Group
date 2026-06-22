@@ -21,7 +21,10 @@
    - 省略 → Hugo 回退用 title 生成 URL，中文标题会出怪 URL；两篇同 title 还会撞车互相覆盖。
 2. **`content_type` 必填且正确**：`publication`/`post`/`project`/`author` 之一。
    - CMS 后台靠它过滤抓取，**缺了或写错，后台列表看不到这篇**。
-3. **`date` 用过去或今天**（`YYYY-MM-DD`）：别用未来日期（虽已开 `buildFuture` 兜底）。
+3. **`date` 带时分秒，确保列表排序确定**：推荐格式 `2026-06-22T20:00:00+08:00`。
+   - 纯日期（`2026-06-22`）等同于当天 00:00，同一天多篇文章时顺序不确定，容易排到后面。
+   - 一天只发一篇时，纯日期也可以，无歧义。
+   - 时区写 `+08:00`（北京时间），与 CMS 后台一致；`buildFuture: true` 继续兜底未来日期。
 
 > `authors` 列表里写团队成员的**拼音**（如 `WangBoyu`）会自动显示中文名 + 头像 + 链接；外部作者直接写名字。
 
@@ -39,8 +42,7 @@ content_type: publication
 authors:
   - WangBoyu          # 团队成员用拼音，自动转中文名
   - Jane Doe          # 外部作者直接写名字
-date: 2026-06-17
-publication_types:
+date: 2026-06-17T20:00:00+08:00
   - article-journal   # paper-conference/article-journal/patent/software/report/standard/book/thesis
 publication: "电子学报"   # 发表期刊/会议，可选
 abstract: "论文摘要……"
@@ -79,7 +81,7 @@ $$
 title: "动态标题"
 slug: my-update
 content_type: post
-date: 2026-06-17
+date: 2026-06-17T20:00:00+08:00
 authors:
   - WangBoyu
 summary: "列表页显示的简短摘要（1-3 句）"
@@ -105,7 +107,7 @@ title: "项目名称"
 slug: my-project
 content_type: project
 subtitle: "副标题"      # 可选
-date: 2026-06-17
+date: 2026-06-17T20:00:00+08:00
 summary: "项目摘要"
 tags: []
 categories: []
