@@ -1,16 +1,30 @@
 ---
 title: VISTA网站更新日志
 slug: vista
-date: 2026-06-22T22:32:00+08:00
+date: 2026-06-24
 authors:
   - WangBoyu
-summary: 截止至2026.6.22日更新和修复的内容细则
+summary: 截止至2026.6.24日更新和修复的内容细则
 tags: []
 categories:
   - website-maintenance
 featured: false
 content_type: post
 ---
+> 2026-06-23 | 团队页面：为无头像作者生成 GitHub 风格像素 Identicon
+
+## 新增能力
+
+- 为所有未上传自定义头像的作者自动生成确定性 Identicon：5×5 像素网格、水平对称、颜色由作者拼音哈希决定，与 GitHub 默认头像风格一致
+- `/authors/` 列表页所有卡片现在高度一致（无头像时不再缺少图片区域）
+- 个人主页（`/author/{pinyin}/`）无头像时改为 Identicon，替换原"蓝紫渐变 + 首字母"占位
+- 论文/博客/项目详情页的作者行内缩略图对无头像作者也同步显示 Identicon
+- CMS 上传真实头像后，Identicon 自动消失，无需任何手动操作
+- Identicon 不生成任何图片文件，Hugo 构建时内联为 SVG，边缘渲染器实时计算，开销极小
+- 补全 `DEFAULT_AUTHORS` 中 `ShiYanyan`/`GaoShengxuan` 的空头像字段，新增 `ZhangFan` 条目
+
+---
+
 > 2026-06-22 | 修复 tag/category 链接 404 和布局错位；修复文件下载被 Tampermonkey 拦截
 
 ## 修复的问题
