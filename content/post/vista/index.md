@@ -8,7 +8,7 @@ summary: 截止至2026.6.22日更新和修复的内容细则
 tags: []
 categories:
   - website-maintenance
-featured: true
+featured: false
 content_type: post
 ---
 > 2026-06-22 | 修复 tag/category 链接 404 和布局错位；修复文件下载被 Tampermonkey 拦截

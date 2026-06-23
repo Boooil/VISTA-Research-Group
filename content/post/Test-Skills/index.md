@@ -16,7 +16,7 @@ summary: "我们提出一个Skills，可以将网页应用测试从传统脚本�
 categories:
   - preview
 math: true
-featured: true
+featured: false
 ---
 
 如果说过去的自动化测试更像“写好脚本，然后让机器重复执行”，那么这个仓库展示的是另一种思路：让 AI Agent 先像真实用户一样进入浏览器、观察界面、操作产品、读取后端响应与日志，再把值得长期回归的流程沉淀成可复跑脚本。

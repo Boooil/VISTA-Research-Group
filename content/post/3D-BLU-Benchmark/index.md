@@ -13,7 +13,7 @@ tags:
 categories:
   - preview
 math: true
-featured: true
+featured: false
 image:
   filename: featured.jpg
   caption:

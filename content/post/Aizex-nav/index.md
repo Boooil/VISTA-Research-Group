@@ -11,7 +11,7 @@ tags:
   - 网页效率工具
 categories:
   - preview
-featured: true
+featured: false
 ---
 
 ## Aizex Panel

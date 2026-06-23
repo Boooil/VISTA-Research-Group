@@ -11,7 +11,7 @@ tags:
   - Claude
 categories:
   - News
-featured: true
+featured: false
 image:
   filename: featured.jpg
   caption: 
