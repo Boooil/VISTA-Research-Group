@@ -1,0 +1,12 @@
+{{/* identicon.html — GitHub 风格 5×5 像素 identicon SVG */}}
+{{/* 输入: . = 种子字符串（作者 pinyin 或 title） */}}
+{{ $hash := md5 . }}
+{{ $firstChar := substr $hash 0 1 }}
+{{ $hexToIdx := dict "0" 0 "1" 1 "2" 2 "3" 3 "4" 4 "5" 5 "6" 6 "7" 7 "8" 8 "9" 9 "a" 10 "b" 11 "c" 12 "d" 13 "e" 14 "f" 15 }}
+{{ $paletteIdx := index $hexToIdx $firstChar | default 0 }}
+{{ $hue := mul $paletteIdx 22 }}
+{{ $filled := slice "8" "9" "a" "b" "c" "d" "e" "f" }}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-full h-full" shape-rendering="crispEdges" aria-hidden="true">
+  <rect width="100" height="100" fill="hsl({{ $hue }}, 40%, 93%)"/>
+  {{ range $row := (seq 0 4) }}{{ range $col := (seq 0 2) }}{{ $charIdx := add (mul $row 3) $col }}{{ $char := substr $hash $charIdx 1 }}{{ if in $filled $char }}{{ $x := add 10 (mul $col 16) }}{{ $y := add 10 (mul $row 16) }}<rect x="{{ $x }}" y="{{ $y }}" width="16" height="16" fill="hsl({{ $hue }}, 65%, 50%)" />{{ if lt $col 2 }}{{ $mx := add 10 (mul (sub 4 $col) 16) }}<rect x="{{ $mx }}" y="{{ $y }}" width="16" height="16" fill="hsl({{ $hue }}, 65%, 50%)" />{{ end }}{{ end }}{{ end }}{{ end }}
+</svg>

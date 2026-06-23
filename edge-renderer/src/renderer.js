@@ -12,7 +12,7 @@
 
 import { marked } from 'marked';
 import { parseMarkdown } from './frontmatter.js';
-import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS } from './authors.js';
+import { resolveAuthors, renderAuthorsHTML, PUB_TYPE_LABELS, generateIdenticon } from './authors.js';
 import { formatDate, calcReadingTime, toISODate } from './utils.js';
 import { renderPageShell, renderAuthorShell } from './shell.js';
 import { getHeadAssets } from './head-assets.js';
@@ -1068,8 +1068,7 @@ function buildAuthorContent({
   if (avatarUrl) {
     html += `<img src="${escapeHTML(avatarUrl)}" alt="${escapeHTML(title)}" width="256" height="256" class="w-48 h-48 rounded-2xl object-cover shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/10">`;
   } else {
-    const initial = title ? title.charAt(0) : '?';
-    html += `<div class="w-48 h-48 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center shadow-lg"><span class="text-5xl font-bold text-blue-600 dark:text-blue-300">${escapeHTML(initial)}</span></div>`;
+    html += `<div class="w-48 h-48 rounded-2xl overflow-hidden shadow-lg ring-1 ring-zinc-900/5 dark:ring-white/10">${generateIdenticon(pinyin || title, 192)}</div>`;
   }
   html += `</div>`;
 

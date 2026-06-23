@@ -5,16 +5,71 @@
  * 使用 KV 存储作者数据，支持团队内部成员识别和外部作者直显
  */
 
+/**
+ * 生成 GitHub 风格 5×5 像素 identicon SVG 字符串
+ * @param {string} seed - 种子字符串（作者 pinyin）
+ * @param {number} size - SVG 宽高（像素）
+ * @returns {string} SVG 字符串
+ */
+export function generateIdenticon(seed, size) {
+  // djb2 哈希
+  let hash = 5381;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) + hash) ^ seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const h = Math.abs(hash);
+
+  const hue = h % 360;
+  const color = `hsl(${hue},65%,50%)`;
+  const bgColor = `hsl(${hue},40%,93%)`;
+
+  const padding = Math.round(size * 0.1);
+  const inner = size - padding * 2;
+  const cell = inner / 5;
+
+  let rects = '';
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 3; col++) {
+      const bitPos = row * 3 + col;
+      if ((h >> bitPos) & 1) {
+        const x = (padding + col * cell).toFixed(1);
+        const y = (padding + row * cell).toFixed(1);
+        const w = cell.toFixed(1);
+        rects += `<rect x="${x}" y="${y}" width="${w}" height="${w}" fill="${color}"/>`;
+        if (col < 2) {
+          const mx = (padding + (4 - col) * cell).toFixed(1);
+          rects += `<rect x="${mx}" y="${y}" width="${w}" height="${w}" fill="${color}"/>`;
+        }
+      }
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" aria-hidden="true"><rect width="${size}" height="${size}" fill="${bgColor}"/>${rects}</svg>`;
+}
+
+/**
+ * 生成 identicon 的 data URL（用于 <img src>）
+ * @param {string} seed
+ * @param {number} size
+ * @returns {string} data:image/svg+xml;base64,...
+ */
+export function generateIdenticonDataUrl(seed, size) {
+  const svg = generateIdenticon(seed, size);
+  return 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
 // 团队作者的初始数据 (Phase 1 硬编码，后续自动同步到 KV)
 const DEFAULT_AUTHORS = {
   WangBoyu: { title: '王博宇', pinyin: 'WangBoyu', role: '在读博士', avatar: 'avatar.jpg' },
   MengQingxin: { title: '孟庆昕', pinyin: 'MengQingxin', role: '在读硕士', avatar: 'avatar.jpg' },
   PengBotao: { title: '彭伯韬', pinyin: 'PengBotao', role: '在读硕士', avatar: 'avatar.jpg' },
   ChenXujian: { title: '陈旭涧', pinyin: 'ChenXujian', role: '研究员', avatar: '' },
-  ShiYanyan: { title: '史燕燕', pinyin: 'ShiYanyan', role: '研究员', avatar: 'avatar.jpg' },
-  GaoShengxuan: { title: '高晟轩', pinyin: 'GaoShengxuan', role: '在读硕士', avatar: 'avatar.jpg' },
+  ShiYanyan: { title: '史燕燕', pinyin: 'ShiYanyan', role: '研究员', avatar: '' },
+  GaoShengxuan: { title: '高晟轩', pinyin: 'GaoShengxuan', role: '在读硕士', avatar: '' },
   ZhangShuo: { title: '张硕', pinyin: 'ZhangShuo', role: '研究员', avatar: '' },
   LinTao: { title: '林涛', pinyin: 'LinTao', role: '在读博士', avatar: '' },
+  ZhangFan: { title: '张凡', pinyin: 'ZhangFan', role: '在读硕士', avatar: '' },
 };
 
 // 默认头像路径
@@ -109,9 +164,13 @@ export function renderAuthorsHTML(authors) {
     const comma = i > 0 && !a.avatarUrl ? '<span class="mr-1">,</span>' : '';
 
     if (a.isTeamMember) {
+      const thumbSrc = a.avatarUrl
+        ? a.avatarUrl
+        : generateIdenticonDataUrl(a.name, 16);
+      const thumbAttrs = a.avatarUrl ? ' loading="lazy" onerror="this.style.display=\'none\'"' : '';
       return `${comma}
   <a href="${a.authorUrl}" class="group inline-flex items-center text-current gap-x-1.5 mx-1 hover:underline">
-    ${a.avatarUrl ? `<img src="${a.avatarUrl}" width="16" height="16" alt="${a.displayName}" class="inline-block h-4 w-4 rounded-full border border-current" loading="lazy" onerror="this.style.display='none'" />` : ''}
+    <img src="${thumbSrc}" width="16" height="16" alt="${escapeHTML(a.displayName)}" class="inline-block h-4 w-4 rounded-full border border-current"${thumbAttrs} />
     <span class="text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300">${escapeHTML(a.displayName)}</span>
   </a>${renderAuthorNote(a)}`;
     } else {
