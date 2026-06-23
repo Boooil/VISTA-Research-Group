@@ -4,7 +4,6 @@ pinyin: ZhangFan
 role: 在读硕士
 interests:
   - Modeling and Simulation
-  - ""
 social:
   - icon_pack: fas
     icon: envelope
