@@ -86,7 +86,14 @@ image:
 
 #### （2）检测层
 
-$$\text{Precision} = \frac{TP}{TP + FP},\text{Recall} = \frac{TP}{TP + FN},F1 = \frac{2\,\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$$
+$$
+\begin{aligned}
+\text{Precision} &= \frac{TP}{TP + FP}, \quad
+\text{Recall} = \frac{TP}{TP + FN} \\
+F_1 &= \frac{2\,\text{Precision} \cdot \text{Recall}}
+{\text{Precision} + \text{Recall}}
+\end{aligned}
+$$
 
 #### （3）定位精度
 

@@ -43,6 +43,15 @@ Paren \(\alpha_{\text{x}} + \beta\).
 
 $$e_{\text{pos}} = \left\| \mathbf{p}_{\text{pred}} - \mathbf{p}_{\text{gt}} \right\|_{2}$$
 
+$$
+\begin{aligned}
+\text{Precision} &= \frac{TP}{TP + FP}, \quad
+\text{Recall} = \frac{TP}{TP + FN} \\
+F_1 &= \frac{2\,\text{Precision} \cdot \text{Recall}}
+{\text{Precision} + \text{Recall}}
+\end{aligned}
+$$
+
 \[\sum_{i=1}^{N} x_i\]
 
 | Metric | Value |
@@ -96,6 +105,7 @@ assert(mathResult.html.includes(String.raw`$d_{\text{match}} = 1.0$`), 'preserve
 assert(mathResult.html.includes(String.raw`$2\,\mathrm{m}$`), 'preserves TeX spacing command');
 assert(mathResult.html.includes(String.raw`\(\alpha_{\text{x}} + \beta\)`), 'preserves parenthesized inline TeX');
 assert(mathResult.html.includes(String.raw`$$e_{\text{pos}} = \left\| \mathbf{p}_{\text{pred}} - \mathbf{p}_{\text{gt}} \right\|_{2}$$`), 'preserves block TeX without Markdown emphasis');
+assert(mathResult.html.includes(String.raw`\begin{aligned}`) && mathResult.html.includes(String.raw`\text{Recall} = \frac{TP}{TP + FN} \\`), 'preserves multiline aligned TeX');
 assert(mathResult.html.includes(String.raw`\[\sum_{i=1}^{N} x_i\]`), 'preserves bracketed block TeX');
 assert(mathResult.html.includes(String.raw`$\left\| \mathbf{v}_{\text{pred}} \right\|$`), 'preserves TeX inside a GFM table cell');
 assert(mathResult.html.includes('<code>$not_math_{x}$</code>'), 'does not treat inline code as math');
