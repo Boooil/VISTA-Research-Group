@@ -58,15 +58,16 @@ collections:
         widget: "string"
         hint: "首字母大写拼音：姓首字母大写 + 名首字首字母大写，如 WangBoyu。用于文件夹命名和排序"
         pattern: ["^[a-zA-Z]+$", "必须为字母，无空格"]
-      - label: "角色/身份"
+      - label: "公开展示身份/职称"
         name: "role"
-        widget: "select"
+        widget: "creatable-select"
         options:
           - "Group Lead"
           - "Core Researcher"
           - "在读博士"
           - "在读硕士"
           - "研究员"
+        hint: "显示在作者个人页和团队卡片上。可选择已有建议，也可直接输入新的身份或职称。"
       - label: "头像"
         name: "avatar_filename"
         widget: "image"
@@ -119,9 +120,9 @@ collections:
         name: "email"
         widget: "string"
         required: false
-      - label: "所属分组"
+      - label: "团队展示分组"
         name: "user_groups"
-        widget: "select"
+        widget: "creatable-select"
         multiple: true
         options:
           - "Group Lead"
@@ -129,7 +130,7 @@ collections:
           - "在读博士"
           - "在读硕士"
           - "研究员"
-        hint: "用于首页团队展示的分组筛选"
+        hint: "用于首页和团队列表的分组，可多选；输入新分组后按 Enter 创建。身份/职称与分组可以不同。"
       - label: "个人详细介绍"
         name: "body"
         widget: "markdown"

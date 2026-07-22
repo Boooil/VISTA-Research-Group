@@ -40,9 +40,21 @@
   {{/* Team Grid */}}
   <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 
-    {{ range $block.content.user_groups }}
+    {{/* Configured groups define the preferred order; newly created groups are appended. */}}
+    {{ $authors := where (where site.Pages "Section" "authors") ".Params.content_type" "author" }}
+    {{ $group_order := $block.content.user_groups | default slice }}
+    {{ range $authors }}
+      {{ $person_groups := .Params.user_groups | default (slice "团队成员") }}
+      {{ range $person_groups }}
+        {{ if not (in $group_order .) }}
+          {{ $group_order = $group_order | append . }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+
+    {{ range $group_order }}
       {{ $group_name := . }}
-      {{ $query := where (where site.Pages "Section" "authors") ".Params.user_groups" "intersect" (slice .) }}
+      {{ $query := where $authors ".Params.user_groups" "intersect" (slice .) }}
 
       {{/* Sort */}}
       {{ $sort_by := $block.content.sort_by | default "Params.last_name" }}
@@ -52,7 +64,7 @@
       {{ $query = sort $query $sort_by $sort_order }}
 
       {{/* Group Header (if multiple groups) */}}
-      {{ if and $query (gt (len $block.content.user_groups) 1) }}
+      {{ if and $query (gt (len $group_order) 1) }}
       <div class="col-span-full">
         <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
           {{ $group_name | markdownify }}

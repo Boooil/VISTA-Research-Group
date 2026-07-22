@@ -134,7 +134,7 @@ image:
 title: "中文姓名"
 content_type: author
 pinyin: "PinyinName"      # 首字母大写拼音，如 WangBoyu，作文件夹名与排序
-role: "在读博士"           # Group Lead/Core Researcher/在读博士/在读硕士/研究员
+role: "在读博士"           # 公开展示的身份/职称，可填写任意合适文本
 avatar_filename: avatar.jpg   # 头像放同目录，正方形，可选
 bio: "一句话简介"
 interests:
@@ -151,7 +151,7 @@ organizations:
   - name: VISTA Research Group
     url: ""
 email: "you@example.com"
-user_groups:              # 首页团队分组筛选
+user_groups:              # 首页和团队列表的展示分组，可多选；不要求与 role 相同
   - 在读博士
 ---
 

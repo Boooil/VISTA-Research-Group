@@ -1,6 +1,6 @@
 {{ define "main" }}
 
-{{ if .Params.role }}
+{{ if eq .Params.content_type "author" }}
   {{/* ================================================================ */}}
   {{/* Individual Author Profile Page                                   */}}
   {{/* ================================================================ */}}
@@ -181,7 +181,7 @@
     {{/* Collect authors */}}
     {{ $authors := slice }}
     {{ range where site.Pages "Section" "authors" }}
-      {{ if .Params.role }}
+      {{ if eq .Params.content_type "author" }}
         {{ $authors = $authors | append . }}
       {{ end }}
     {{ end }}
