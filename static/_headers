@@ -1,0 +1,5 @@
+/admin
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/admin/*
+  Cache-Control: no-store, no-cache, must-revalidate
