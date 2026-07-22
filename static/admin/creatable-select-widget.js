@@ -289,7 +289,7 @@
         var placeholder = fieldValue(this.props.field, "placeholder",
           multiple ? "选择已有分组，或输入新分组后按 Enter" : "选择已有身份，或直接输入新身份");
 
-        return h("div", { className: "creatable-select-widget", style: { position: "relative" } },
+        return h("div", { className: "creatable-select-widget" },
           multiple && items.length ? h("div", {
             style: { display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }
           }, items.map(function (item, index) {
@@ -322,7 +322,7 @@
 
           this.state.showSuggestions && suggestions.length ? h("ul", {
             role: "listbox",
-            style: { position: "absolute", zIndex: 20, left: 0, right: 0, margin: "4px 0 0", padding: "4px 0", maxHeight: "220px", overflowY: "auto", listStyle: "none", background: "white", border: "1px solid #d1d5db", borderRadius: "4px", boxShadow: "0 8px 20px rgba(0,0,0,.14)" }
+            style: { boxSizing: "border-box", width: "100%", margin: "4px 0 0", padding: "4px 0", maxHeight: "220px", overflowY: "auto", overscrollBehavior: "contain", scrollbarGutter: "stable", listStyle: "none", background: "white", border: "1px solid #d1d5db", borderRadius: "4px", boxShadow: "0 4px 12px rgba(0,0,0,.1)" }
           }, suggestions.map(function (suggestion, index) {
             return h("li", {
               key: suggestion,
