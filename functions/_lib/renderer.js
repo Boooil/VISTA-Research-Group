@@ -63,6 +63,41 @@ marked.use({
   },
 });
 
+// marked 不理解 TeX，会把下划线解析成 <em>，并移除 \|、\, 等反斜杠。
+// 数学页面先用纯字母数字占位符保护公式，Markdown 解析完成后再恢复原文，
+// 使浏览器端 KaTeX auto-render 收到与 Hugo Goldmark passthrough 相同的输入。
+const MATH_OR_CODE_RE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`+[^`\r\n]*`+)|(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\((?:(?!\\\))[\s\S])*?\\\)|\$(?!\$)(?:\\.|[^$\r\n])+\$(?!\$))/g;
+
+function renderMarkdown(markdown, mathEnabled = false) {
+  if (!mathEnabled) return marked.parse(markdown);
+
+  let tokenPrefix = 'VISTAMATHTOKEN';
+  while (markdown.includes(tokenPrefix)) tokenPrefix += 'X';
+
+  const mathSegments = [];
+  const protectedMarkdown = markdown.replace(MATH_OR_CODE_RE, (match, code, math) => {
+    if (code) return match;
+
+    const token = `${tokenPrefix}${mathSegments.length}END`;
+    mathSegments.push({
+      token,
+      raw: math,
+      display: math.startsWith('$$') || math.startsWith('\\['),
+    });
+    return token;
+  });
+
+  let html = marked.parse(protectedMarkdown);
+  for (const { token, raw, display } of mathSegments) {
+    const safeMath = escapeHTML(raw);
+    if (display) {
+      html = html.replaceAll(`<p>${token}</p>\n`, () => `${safeMath}\n`);
+    }
+    html = html.replaceAll(token, () => safeMath);
+  }
+  return html;
+}
+
 // ============================================================================
 // TOC HTML 构建
 // ============================================================================
@@ -327,7 +362,7 @@ export async function renderPublication({ slug, folder, env, log }) {
   _currentHeadings = [];
   if (processedBody) {
     try {
-      bodyHTML = marked.parse(processedBody);
+      bodyHTML = renderMarkdown(processedBody, frontmatter.math === true);
     } catch (err) {
       log.error('[renderPublication] Markdown parse error', err.message);
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
@@ -386,6 +421,7 @@ export async function renderPublication({ slug, folder, env, log }) {
     hasAuthors: authors.length > 0,
     hasDate: !!frontmatter.date,
     hasReadingTime: frontmatter.reading_time !== false,
+    mathEnabled: frontmatter.math === true,
   });
 
   // 10. 构建完整页面
@@ -405,7 +441,7 @@ export async function renderPublication({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
-    headAssets: await getHeadAssets(SITE_BASE_URL, log),
+    headAssets: await getHeadAssets(SITE_BASE_URL, log, { math: frontmatter.math === true }),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -448,7 +484,7 @@ export async function renderPost({ slug, folder, env, log }) {
   _currentHeadings = [];
   if (processedBody) {
     try {
-      bodyHTML = marked.parse(processedBody);
+      bodyHTML = renderMarkdown(processedBody, frontmatter.math === true);
     } catch (err) {
       log.error('[renderPost] Markdown parse error', err.message);
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
@@ -519,7 +555,7 @@ export async function renderPost({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
-    headAssets: await getHeadAssets(SITE_BASE_URL, log),
+    headAssets: await getHeadAssets(SITE_BASE_URL, log, { math: frontmatter.math === true }),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -562,7 +598,7 @@ export async function renderProject({ slug, folder, env, log }) {
   _currentHeadings = [];
   if (processedBody) {
     try {
-      bodyHTML = marked.parse(processedBody);
+      bodyHTML = renderMarkdown(processedBody, frontmatter.math === true);
     } catch (err) {
       log.error('[renderProject] Markdown parse error', err.message);
       bodyHTML = `<pre>${escapeHTML(processedBody)}</pre>`;
@@ -632,7 +668,7 @@ export async function renderProject({ slug, folder, env, log }) {
     modifiedTime: publishedISO,
     ogImage: featuredImageUrl || '',
     currentYear,
-    headAssets: await getHeadAssets(SITE_BASE_URL, log),
+    headAssets: await getHeadAssets(SITE_BASE_URL, log, { math: frontmatter.math === true }),
   });
 
   return { html, status: 200, cacheKey: canonicalUrl };
@@ -903,6 +939,7 @@ function buildPublicationContent({
   hasAuthors,
   hasDate,
   hasReadingTime,
+  mathEnabled,
 }) {
   let html = '';
 
@@ -988,7 +1025,7 @@ function buildPublicationContent({
 
   if (abstract) {
     let abstractHTML = '';
-    try { abstractHTML = marked.parse(abstract); } catch (_) { abstractHTML = escapeHTML(abstract); }
+    try { abstractHTML = renderMarkdown(abstract, mathEnabled); } catch (_) { abstractHTML = escapeHTML(abstract); }
     html += `<div class="font-bold text-2xl">Abstract</div>`;
     html += `<div class="prose prose-slate dark:prose-invert max-w-none">${abstractHTML}</div>`;
   }
@@ -1001,7 +1038,7 @@ function buildPublicationContent({
 
   if (publicationVenue) {
     let venueHTML = '';
-    try { venueHTML = marked.parse(publicationVenue); } catch (_) { venueHTML = escapeHTML(publicationVenue); }
+    try { venueHTML = renderMarkdown(publicationVenue, mathEnabled); } catch (_) { venueHTML = escapeHTML(publicationVenue); }
     html += `<div class="font-bold text-2xl">Publication</div>`;
     html += `<div class="prose prose-slate dark:prose-invert max-w-none">${venueHTML}</div>`;
   }

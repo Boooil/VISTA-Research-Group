@@ -204,12 +204,14 @@ Worker 需要解析 `index.md` 的 YAML frontmatter：
 ```javascript
 import { marked } from 'marked';
 marked.use({ gfm: true, breaks: false });
-const html = marked.parse(markdownBody);
+const html = renderMarkdown(markdownBody, frontmatter.math === true);
 ```
 
 - 支持 GFM 表格、代码块、引用块
 - 支持 Hugo goldmark 的 `unsafe: true` 等价行为（内联 HTML 透传）
-- 数学公式 `$$...$$` 和 `\(...\)` 保留原文，由前端 KaTeX/MathJax 渲染
+- 数学页面在调用 `marked` 前把 `$...$`、`$$...$$`、`\(...\)`、`\[...\]` 替换为纯字母数字占位符，解析后恢复并做 HTML 转义，避免 `_` 被转成 `<em>` 或 `\|`、`\,` 被 Markdown 吞掉；代码块和行内代码不参与替换
+- 将正文装入页面 shell 时，所有 `String.replace` 都使用函数返回替换值，避免 JavaScript 把正文中的 `$$` 当作替换模式并折叠成单个 `$`
+- `head-assets` 对普通页和数学页分开取资源：普通页读取 `/publication/`，数学页读取不走边缘详情路由的隐藏 Hugo 页面 `/edge-assets/`。后者设置 `math: true`，用于提供当前构建指纹的 KaTeX CSS、JS 与 auto-render 脚本，不硬编码 hash
 
 ### 5.5 作者名解析（关键环节）
 

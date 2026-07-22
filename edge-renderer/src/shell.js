@@ -103,20 +103,20 @@ function applyShellReplacements(shell, {
   const assets = (headAssets && headAssets.length > 0) ? headAssets : FALLBACK_HEAD_ASSETS;
 
   return shell
-    .replace(/__CONTENT__/, content)
-    .replace(/__TOC__/g, toc)
-    .replace(/__HEAD_ASSETS__/g, assets)
-    .replace(/__CANONICAL_URL__/g, escapeHTML(canonicalUrl))
-    .replace(/__META_DESC__/g, safeDesc)
-    .replace(/__OG_TITLE__/g, `${safeTitle} | VISTA Research Group`)
-    .replace(/__OG_DESC__/g, safeDesc)
-    .replace(/__OG_IMAGE_TAGS__/g, ogImageTags)
-    .replace(/__OG_TYPE_TAG__/g, ogTypeTag)
-    .replace(/__PUBLISHED_TIME_TAG__/g, publishedTimeTag)
-    .replace(/__MODIFIED_TIME_TAG__/g, modifiedTimeTag)
-    .replace(/__PAGE_TITLE__/g, `${safeTitle} | VISTA Research Group`)
-    .replace(/__CURRENT_YEAR__/g, escapeHTML(currentYear))
-    .replace(/__SEARCH_MODAL__/g, SEARCH_MODAL_HTML);
+    .replace(/__CONTENT__/, () => content)
+    .replace(/__TOC__/g, () => toc)
+    .replace(/__HEAD_ASSETS__/g, () => assets)
+    .replace(/__CANONICAL_URL__/g, () => escapeHTML(canonicalUrl))
+    .replace(/__META_DESC__/g, () => safeDesc)
+    .replace(/__OG_TITLE__/g, () => `${safeTitle} | VISTA Research Group`)
+    .replace(/__OG_DESC__/g, () => safeDesc)
+    .replace(/__OG_IMAGE_TAGS__/g, () => ogImageTags)
+    .replace(/__OG_TYPE_TAG__/g, () => ogTypeTag)
+    .replace(/__PUBLISHED_TIME_TAG__/g, () => publishedTimeTag)
+    .replace(/__MODIFIED_TIME_TAG__/g, () => modifiedTimeTag)
+    .replace(/__PAGE_TITLE__/g, () => `${safeTitle} | VISTA Research Group`)
+    .replace(/__CURRENT_YEAR__/g, () => escapeHTML(currentYear))
+    .replace(/__SEARCH_MODAL__/g, () => SEARCH_MODAL_HTML);
 }
 
 // ============================================================================
