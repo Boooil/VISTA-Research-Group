@@ -2,6 +2,7 @@
 title: 王艺畅
 pinyin: WangYichang
 role: 在读硕士
+avatar_filename: wangyichang.png
 social:
   - icon_pack: fas
     icon: envelope
