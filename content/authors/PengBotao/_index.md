@@ -1,27 +1,24 @@
 ---
-title: "彭伯韬"
-content_type: author
-pinyin: "PengBotao"
-role: "在读硕士"
+title: 彭伯韬
+pinyin: PengBotao
+role: 研究员
 avatar_filename: avatar.jpg
-bio: "coder"
-interests: 
+bio: coder
+interests:
   - agent engineering
 social:
   - icon: envelope
     icon_pack: fas
-    link: "mailto:gatroo@qq.com"
+    link: mailto:gatroo@qq.com
   - icon: github
     icon_pack: fab
-    link: "https://github.com/gatro-adu"
+    link: https://github.com/gatro-adu
 organizations:
   - name: VISTA Research Group
     url: ""
-education:
-email: "gatroo@qq.com"
+email: gatroo@qq.com
 user_groups:
-  - 在读硕士
+  - 研究员
+content_type: author
+education: null
 ---
-
-
-
