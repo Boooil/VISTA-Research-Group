@@ -46,7 +46,7 @@
         {{ range $i, $author_obj := (.GetTerms $taxonomy) }}
           {{ $author_page := $author_obj.Page }}
           {{ $is_team_member := $author_page.File }}
-          {{ $avatar := ($author_page.Resources.ByType "image").GetMatch "*avatar*" }}
+          {{ $avatar := partial "authors/avatar-resource.html" $author_page }}
           {{- if and $i (not $avatar) }}<span class="mr-1">,</span>{{ end -}}
           {{ if $is_team_member }}
           <a href="{{ $author_page.RelPermalink }}" class="group inline-flex items-center text-current gap-x-1.5 mx-1 hover:underline">

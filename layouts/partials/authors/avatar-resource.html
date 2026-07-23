@@ -1,0 +1,8 @@
+{{- $page := . -}}
+{{- $avatar := ($page.Resources.ByType "image").GetMatch "*avatar*" -}}
+{{- with $page.Params.avatar_filename -}}
+  {{- with $page.Resources.GetMatch . -}}
+    {{- $avatar = . -}}
+  {{- end -}}
+{{- end -}}
+{{- return $avatar -}}

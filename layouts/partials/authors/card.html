@@ -1,6 +1,6 @@
 {{/* Author card — shared between authors list and team-showcase block */}}
 {{ $person := . }}
-{{ $avatar := ($person.Resources.ByType "image").GetMatch "*avatar*" }}
+{{ $avatar := partial "authors/avatar-resource.html" $person }}
 {{ $link := $person.RelPermalink }}
 
 <div class="group relative">

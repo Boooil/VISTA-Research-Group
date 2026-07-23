@@ -74,7 +74,7 @@
 
       {{/* Team Members */}}
       {{ range $person := $query }}
-        {{ $avatar := (.Resources.ByType "image").GetMatch "*avatar*" }}
+        {{ $avatar := partial "authors/avatar-resource.html" . }}
         {{ $link := "" }}
         {{ with site.GetPage (printf "/authors/%s" (path.Base .File.Dir)) }}
           {{ $link = .RelPermalink }}
